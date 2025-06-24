@@ -1,6 +1,6 @@
 
 import random as rand
-
+import json
 
 
 names = ["jeff", "john", "jim", "jerry", "josh"]
@@ -51,7 +51,10 @@ def play(team1, team2):
     print(f"The {winner} have won the match!")
     print("-------------------------")
     
-
+def read_player_data(path):
+    with open(path, "r") as file:
+        data = json.load(file)
+    return data
     
 
 def main():
@@ -61,5 +64,7 @@ def main():
 
     play(mice, snakes)
 
-main()
+# main()
 
+mydata = read_player_data("players.json")
+print(mydata[0]["overall"])
