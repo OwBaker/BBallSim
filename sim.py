@@ -138,7 +138,7 @@ def initializeTeams(t1, t2):
 
     for i in range(5):
         playertoadd = players["PlayerID"][rand.randint(0, len(players["PlayerID"]) - 1)]
-        while playertoadd in t1.players["PlayerID"]:
+        while playertoadd in t1.players["PlayerID"] or playertoadd in t2.players["PlayerID"]:
             playertoadd = players["PlayerID"][rand.randint(0, len(players["PlayerID"]) - 1)]
 
         t1.players["PlayerID"].append(playertoadd)
@@ -152,7 +152,7 @@ def initializeTeams(t1, t2):
     
     for i in range(5):
         playertoadd = players["PlayerID"][rand.randint(0, len(players["PlayerID"]) - 1)]
-        while playertoadd in t2.players["PlayerID"]:
+        while playertoadd in t2.players["PlayerID"] or playertoadd in t1.players["PlayerID"] :
             playertoadd = players["PlayerID"][rand.randint(0, len(players["PlayerID"]) - 1)]
 
         t2.players["PlayerID"].append(playertoadd)
@@ -164,8 +164,6 @@ def initializeTeams(t1, t2):
         t2.players["MidDef"].append(players['MidDef'][playertoadd])
         t2.players["PerDef"].append(players['PerDef'][playertoadd])
     
-    print("done")
-
     return
 
 
@@ -224,3 +222,8 @@ def main():
             break
 
 main()
+
+
+# TODO: integrate pandas for easier data display + retrieval
+# TODO: add input validation to menus
+# TODO: fine-tune algorithm
