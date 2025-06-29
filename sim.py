@@ -206,6 +206,7 @@ def main():
 
 main()
 
-
+# TODO: Add method to save/load rosters
+# TODO: Add method to sim multiple games, save results, and plot results
 # TODO: fine-tune algorithm
 # TODO: plan out next steps
