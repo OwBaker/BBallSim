@@ -13,6 +13,12 @@ class Team:
     def __init__(self, name):
         self.name = name
         self.players = gen_players(0)
+        
+        
+    def empty_df(self):
+
+        self.players.drop(labels=0, axis=0, inplace=True)
+
 
 # decides a game's outcome given the dataframes for each team, returns name of victor and prints some debug info for now
 def decideOutcome(t1, t2):
@@ -36,6 +42,7 @@ def decideOutcome(t1, t2):
 
     # do the same for team 2's players
     for i in range(len(t2.players["PlayerID"]) - 1):
+       # playeroffsum = (game_val(t2.players["InShot"].values[i]))
         playeroffsum = (game_val(t2.players.loc[i, "InShot"]) + game_val(t2.players.loc[i, "MidShot"]) + game_val(t2.players.loc[i, "ThreeShot"])) 
         playerdefsum = (game_val(t2.players.loc[i, "InDef"]) + game_val(t2.players.loc[i, "MidDef"]) + game_val(t2.players.loc[i, "PerDef"]))
 
@@ -135,9 +142,11 @@ def initializeTeams(t1, t2):
 
     players = gen_players(10) # get players
 
+    t1.players.drop(labels=0, axis=0, inplace=True)
+    t2.players.drop(labels=0, axis=0, inplace=True)
+
     # team 1 loop
     for i in range(5):
-        print("ok")
         # select a random player(entire row)
         playertoadd = players.sample(n=1, axis=0)
         # add to team 1
@@ -152,7 +161,10 @@ def initializeTeams(t1, t2):
         t2.players = pd.concat([t2.players, playertoadd])
     
         players = players.drop(labels=(int(playertoadd['PlayerID'].values[0])), axis='index')
-        
+    
+    t1.players.reset_index(drop=True, inplace=True)
+    t2.players.reset_index(drop=True, inplace=True)
+
     return
 
 
@@ -168,26 +180,32 @@ def main():
 
 
     while True:
-        mainChoice = int(input("----------------- \n1. Play Match \n2. View Teams \n3. Exit\n-----------------\n"))
-        if mainChoice == 1:
-            play(mice, snakes)
-            subChoice = input("----------------- \nPress enter to exit \n-----------------\n")
-            if subChoice:
+        try:
+            mainChoice = int(input("----------------- \n1. Play Match \n2. View Teams \n3. Exit\n-----------------\n"))
+            try:
+                if mainChoice == 1:
+                    play(mice, snakes)
+                    subChoice = input("----------------- \nPress enter to exit \n-----------------\n")
+                    if subChoice:
+                        pass
+                elif mainChoice == 2:
+                    
+                    detail(mice)
+                    detail(snakes)
+                    subChoice = input("----------------- \nPress enter to exit \n-----------------\n")
+                    if subChoice:
+                        pass
+                elif mainChoice == 3:
+                    break
+                else:
+                    break
+            except:
                 pass
-        elif mainChoice == 2:
-            
-            detail(mice)
-            detail(snakes)
-            subChoice = input("----------------- \nPress enter to exit \n-----------------\n")
-            if subChoice:
-                pass
-        elif mainChoice == 3:
-            break
-        else:
-            break
+        except:
+            pass
 
 main()
 
 
-# TODO: add input validation to menus
 # TODO: fine-tune algorithm
+# TODO: plan out next steps
