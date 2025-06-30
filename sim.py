@@ -101,11 +101,7 @@ def play(team1, team2):
     print(f"The {winner} have won the match!")
     print("-------------------------")
 
-# currently useless function for reading playerdata from a json file
-def read_player_data(path):
-    with open(path, "r") as file:
-        data = json.load(file)
-    return data
+
     
 
 # generate a given amount of players (random)
@@ -167,6 +163,22 @@ def initializeTeams(t1, t2):
 
     return
 
+# working on save/load data
+def read_json(path):
+    with open(path, "r") as file:
+        data = json.load(file)
+    return data
+
+def json_testing(team):
+
+    team.players = team.players.to_json()
+    teamdict = {team.name: team.__dict__}
+
+    with open("players.json", "a") as file:
+        next(file)
+        file.write(json.dumps(teamdict, indent=""))
+    
+    team.players = pd.read_json(team.players)
 
 # controls everything
 def main():
@@ -178,6 +190,7 @@ def main():
     # creates and distributes players
     initializeTeams(mice, snakes)
 
+    json_testing(mice)
 
     while True:
         try:
