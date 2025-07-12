@@ -169,28 +169,71 @@ def read_json(path):
         data = json.load(file)
     return data
 
-def json_testing(team):
+# writes teams to json file
+def save_teams(teams):
+    '''
+    pass list of team objects as arguments
+    store teams into dictionary
+    write dict as json string
 
-    team.players = team.players.to_json()
-    teamdict = {team.name: team.__dict__}
+    '''
+    teamdict = {}
 
-    with open("players.json", "a") as file:
-        next(file)
+    for team in teams:
+        # convert df to json string
+        team.players = team.players.to_json()
+        # add team as entry in dict
+        teamdict[team.name] = team.__dict__
+
+    with open("players.json", "w") as file:
         file.write(json.dumps(teamdict, indent=""))
     
     team.players = pd.read_json(team.players)
 
+
+# reads json file of teams
+def load_teams(file_path):
+    '''
+    create dictionary of converted teams
+    open file
+    write json to dictionary
+    iterate and convert jsons to dfs
+    '''
+
+    teams = {}
+    with open(file_path, "r") as file:
+        teams = json.load(file)
+
+    for team in teams.values():
+        team.players = pd.read_json(team.players) 
+
+    return teams
+    
+
+'''
+SAVE/LOAD PLAN 
+
+1. Load and unpack data at the start:
+    - take the json, and read it into pandas df(s)
+2. make changes to the pandas df during gameplay
+3. rewrite json file at the end of gameplay
+
+
+'''
+
 # controls everything
 def main():
     
+    teamdict = load_teams("players.json")
+    
     # creates two team objects
-    mice = Team("Mice")
-    snakes = Team("Snakes")
+   # mice = Team("Mice")
+    mice = teamdict["Mice"]
+  #  snakes = Team("Snakes")
+    snakes = teamdict["Snakes"]
     
     # creates and distributes players
     initializeTeams(mice, snakes)
-
-    json_testing(mice)
 
     while True:
         try:
@@ -216,6 +259,8 @@ def main():
                 pass
         except:
             pass
+    
+    save_teams(teamdict.values())
 
 main()
 
