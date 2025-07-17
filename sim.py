@@ -50,7 +50,7 @@ def decideOutcome(t1, t2):
         team2defense += playerdefsum
     
     # display raw team values for debug, calculate how teams stack against each other
-    print(f"{t1.name} Off/Def: {team1offense, team1defense} \n{t2.name} Off/Def: {team2offense, team2defense}")
+    print(f"{t1.name} Off/Def: {float(team1offense), float(team1defense)} \n{t2.name} Off/Def: {float(team2offense), float(team2defense)}")
     team1pointdif = team1offense - team2defense
     team2pointdif = team2offense - team1defense
     print(f"{t1.name} PointDif: {team1pointdif}")
@@ -205,35 +205,35 @@ def load_teams(file_path):
         teams = json.load(file)
 
     for team in teams.values():
-        team.players = pd.read_json(team.players) 
+        team["players"] = pd.read_json(team["players"]) 
 
     return teams
+
+# converts a dictionary containing a team to a team object
+def dict_to_team(dct):
+    teamobj = Team(dct["name"])
+    teamobj.players = dct["players"]
     
+    return teamobj
 
-'''
-SAVE/LOAD PLAN 
-
-1. Load and unpack data at the start:
-    - take the json, and read it into pandas df(s)
-2. make changes to the pandas df during gameplay
-3. rewrite json file at the end of gameplay
-
-
-'''
 
 # controls everything
 def main():
     
+    # read teams from json file
     teamdict = load_teams("players.json")
     
-    # creates two team objects
-   # mice = Team("Mice")
-    mice = teamdict["Mice"]
-  #  snakes = Team("Snakes")
-    snakes = teamdict["Snakes"]
+    # convert dictionaries to teams 
+    micedict = teamdict["Mice"]
+    mice = dict_to_team(micedict)
     
-    # creates and distributes players
-    initializeTeams(mice, snakes)
+    snakesdict = teamdict["Snakes"]
+    snakes = dict_to_team(snakesdict)
+
+    # currently unused code for team generation:
+    # mice = Team("Mice")
+    # snakes = Team("Snakes")
+    # initializeTeams(mice, snakes)
 
     while True:
         try:
@@ -260,11 +260,12 @@ def main():
         except:
             pass
     
-    save_teams(teamdict.values())
+    # write team objects to json file
+    save_teams([mice, snakes])
 
 main()
 
-# TODO: Add method to save/load rosters
 # TODO: Add method to sim multiple games, save results, and plot results
+# TODO: address StringIO warning
 # TODO: fine-tune algorithm
 # TODO: plan out next steps
