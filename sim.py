@@ -185,7 +185,7 @@ def save_teams(teams):
         # add team as entry in dict
         teamdict[team.name] = team.__dict__
 
-    with open("players.json", "w") as file:
+    with open("teams.json", "w") as file:
         file.write(json.dumps(teamdict, indent=""))
     
     team.players = pd.read_json(team.players)
@@ -221,7 +221,7 @@ def dict_to_team(dct):
 def main():
     
     # read teams from json file
-    teamdict = load_teams("players.json")
+    teamdict = load_teams("teams.json")
     
     # convert dictionaries to teams 
     micedict = teamdict["Mice"]
@@ -265,6 +265,7 @@ def main():
 
 main()
 
+# TODO: Add option to choose whether to load teams or create new ones
 # TODO: Add method to sim multiple games, save results, and plot results
 # TODO: address StringIO warning
 # TODO: fine-tune algorithm
