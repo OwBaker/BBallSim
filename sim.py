@@ -216,6 +216,28 @@ def dict_to_team(dct):
     
     return teamobj
 
+'''
+main loop plan:
+
+choice loop 1:
+    load teams or generate teams?
+    if load teams:
+        read from json
+        core loop
+    if generate teams:
+        create team objects
+        distribute players
+        core loop
+    
+    upon exiting core loop:
+        save teams? (will overwrite current saved teams)
+        if yes
+            write teams to json
+            exit
+        if no
+            exit
+    
+'''
 
 # controls everything
 def main():
