@@ -210,68 +210,77 @@ def dict_to_team(dct):
     
     return teamobj
 
-'''
-main loop plan:
 
-choice loop 1:
-    load teams or generate teams?
-    if load teams:
-        read from json
-        core loop
-    if generate teams:
-        create team objects
-        distribute players
-        core loop
-    
-    upon exiting core loop:
-        save teams? (will overwrite current saved teams)
-        if yes
-            write teams to json
-            exit
-        if no
-            exit
-    
-'''
 
 # controls everything
 def main():
     
-    try:
-       loadChoice = int(input("----------------- \n1. Load Teams from Json \n2. Generate new teams from scratch"))
-    except:
-        pass
-    # read teams from json file
-    teamdict = load_teams("teams.json")
-    
-    # convert dictionaries to teams 
-    micedict = teamdict["Mice"]
-    mice = dict_to_team(micedict)
-    
-    snakesdict = teamdict["Snakes"]
-    snakes = dict_to_team(snakesdict)
-
-    # currently unused code for team generation:
-    # mice = Team("Mice")
-    # snakes = Team("Snakes")
-    # initializeTeams(mice, snakes)
-
+    # first loop, determines if teams are to be generated or read from json file
     while True:
         try:
+            # choice between loading or generating rosters
+            loadChoice = int(input("----------------- \n1. Load Teams from Json \n2. Generate new teams from scratch \n -----------------\n"))
+
+            # for loading
+            if loadChoice == 1:
+                # create dictionary of team dictionaries
+                teamdict = load_teams("teams.json")
+                
+                # convert dictionaries to team objects
+                micedict = teamdict["Mice"]
+                mice = dict_to_team(micedict)
+        
+                snakesdict = teamdict["Snakes"]
+                snakes = dict_to_team(snakesdict)
+                break
+            
+            # for generation
+            elif loadChoice == 2:
+                # create new team objects
+                mice = Team("Mice")
+                snakes = Team("Snakes")
+
+                # generate players and distribute them to teams
+                initializeTeams(t1=mice, t2=snakes)
+
+                break
+
+        except:
+            pass
+
+    # second loop, controls main simulation, viewing players, and saving rosters
+    while True:
+        try:
+            # choice between playing a match, viewing team details, and exiting
             mainChoice = int(input("----------------- \n1. Play Match \n2. View Teams \n3. Exit\n-----------------\n"))
             try:
+                # for matches
                 if mainChoice == 1:
-                    play(mice, snakes)
+                    play(mice, snakes) # runs the game
                     subChoice = input("----------------- \nPress enter to exit \n-----------------\n")
                     if subChoice:
                         pass
+                
+                # for viewing teams
                 elif mainChoice == 2:
                     
+                    # essentially prints out the pandas df for each team
                     detail(mice)
                     detail(snakes)
                     subChoice = input("----------------- \nPress enter to exit \n-----------------\n")
                     if subChoice:
                         pass
+                        
+                # for exiting 
                 elif mainChoice == 3:
+                    # ask if user wants to save teams from current session
+                    saveChoice = input("----------------- \n Would you like to save the current teams? (y/n) \n ----------------- ")
+                    if str(saveChoice).strip().lower() == "y" or str(saveChoice).strip().lower() == "yes":
+                        # write teams to json file
+                        save_teams([mice, snakes])
+                    elif str(saveChoice).strip.lower() == "n" or str(saveChoice).strip.lower() == "no":
+                        pass
+                    
                     break
                 else:
                     break
@@ -280,12 +289,11 @@ def main():
         except:
             pass
     
-    # write team objects to json file
-    save_teams([mice, snakes])
+
+
 
 main()
 
-# TODO: Add option to choose whether to load teams or create new ones
 # TODO: Add method to sim multiple games, save results, and plot results
 # TODO: address StringIO warning
 # TODO: fine-tune algorithm
