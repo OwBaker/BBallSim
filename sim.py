@@ -138,7 +138,7 @@ def initializeTeams(t1, t2):
 
     players = gen_players(10) # get players
 
-    t1.players.drop(labels=0, axis=0, inplace=True)
+    t1.players.drop(labels=0, axis=0, inplace=True) # remove nan values in tables
     t2.players.drop(labels=0, axis=0, inplace=True)
 
     # team 1 loop
@@ -162,12 +162,6 @@ def initializeTeams(t1, t2):
     t2.players.reset_index(drop=True, inplace=True)
 
     return
-
-# working on save/load data
-def read_json(path):
-    with open(path, "r") as file:
-        data = json.load(file)
-    return data
 
 # writes teams to json file
 def save_teams(teams):
@@ -242,6 +236,10 @@ choice loop 1:
 # controls everything
 def main():
     
+    try:
+       loadChoice = int(input("----------------- \n1. Load Teams from Json \n2. Generate new teams from scratch"))
+    except:
+        pass
     # read teams from json file
     teamdict = load_teams("teams.json")
     
