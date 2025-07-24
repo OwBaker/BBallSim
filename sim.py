@@ -105,11 +105,15 @@ def game_val(value):
 
 # displays some nice information about the game, and invokes decideOutcome to play it
 def play(team1, team2):
+    # calculate team overalls
+    t1ovr = team1.players["OVR"].mean()
+    t2ovr = team2.players["OVR"].mean()
+
     print("-------------------------")
     print(f"The match between the {team1.name} and the {team2.name} now begins!")
     print()
-    print(f"The {team1.name}: {team1.players['Name'].values}")
-    print(f"The {team2.name}: {team2.players['Name'].values}")
+    print(f"The {team1.name} (OVR: {t1ovr}): {team1.players['Name'].values}")
+    print(f"The {team2.name} (OVR: {t2ovr}): {team2.players['Name'].values}")
     winner = decideOutcome(team1, team2)
     print()
     print(f"The {winner} have won the match!")
@@ -133,6 +137,9 @@ def gen_players(amount):
         dict.loc[i, "InDef"] = rand.randint(70, 100)
         dict.loc[i, "MidDef"] = rand.randint(70, 100)
         dict.loc[i, "PerDef"] = rand.randint(70, 100)
+        dict.loc[i, "OVR"] = (round(((dict.loc[i, "InShot"] + dict.loc[i, "MidShot"] + 
+                                     dict.loc[i, "ThreeShot"] + dict.loc[i, "InDef"] + 
+                                     dict.loc[i, "MidDef"] + dict.loc[i, "PerDef"]) / 6)))
     
     return dict
 
@@ -222,9 +229,12 @@ def load_teams(file_path):
 def dict_to_team(dct):
     teamobj = Team(dct["name"])
     teamobj.players = dct["players"]
+    teamobj.wins = dct["wins"]
+    teamobj.losses = dct["losses"]
     
     return teamobj
 
+# plots a simple bar graph of wins and losses for each team
 def plot_wins(t1, t2):
     t1wins = t1.wins
     t2wins = t2.wins
@@ -274,11 +284,17 @@ def main():
     while True:
         try:
             # choice between playing a match, viewing team details, and exiting
-            mainChoice = int(input("----------------- \n1. Play Match \n2. View Teams \n3. Exit\n-----------------\n"))
+            mainChoice = int(input("----------------- \n1. Play Matches \n2. View Teams \n3. Plot W-L Record \n4. Exit \n-----------------\n"))
             try:
                 # for matches
                 if mainChoice == 1:
-                    play(mice, snakes) # runs the game
+                    # ask how many games to sim
+                    simCount = int(input("How many games would you like to sim?\n"))
+                    # run the given amount
+                    for x in range(simCount):
+                        play(mice, snakes)
+                    print(f"{simCount} Games Played")
+
                     subChoice = input("----------------- \nPress enter to exit \n-----------------\n")
                     if subChoice:
                         pass
@@ -292,8 +308,12 @@ def main():
                     if subChoice:
                         pass
                         
-                # for exiting 
                 elif mainChoice == 3:
+                    plot_wins(mice, snakes)
+                    print("W-L Plotted")
+
+                # for exiting 
+                elif mainChoice == 4:
                     # ask if user wants to save teams from current session
                     saveChoice = input("----------------- \nWould you like to save the current teams? (y/n) \n----------------- ")
                     if str(saveChoice).strip().lower() == "y" or str(saveChoice).strip().lower() == "yes":
@@ -315,12 +335,6 @@ def main():
 
 main()
 
-# TODO: Add method to sim multiple games, save results, and plot results
-'''
-plan:
-- add win/loss record for each team
-- add a method to sim x number of games fast
-- add a feature to plot current wins and losses
-'''
+
 # TODO: fine-tune algorithm
 # TODO: plan out next steps
