@@ -338,3 +338,21 @@ main()
 
 # TODO: fine-tune algorithm
 # TODO: plan out next steps
+
+
+'''
+ALGORITHM IDEAS:
+Notes from MIT paper:
+    - graphs are excellent for play-by-play sims
+    - factors in lineups really well
+    - training off of real data is great, but might not be right for me - kind of hard to say
+    - main concern is how do you even implement this kind of stuff
+
+The Ideal Sim
+    - is play-by-play
+    - takes lineups into account heavily
+    - includes things like fouls, rebounds, and turnovers
+    - takes time into account somehow
+
+
+'''
