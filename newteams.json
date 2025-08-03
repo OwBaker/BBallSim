@@ -1,0 +1,44 @@
+{
+"Mice": {
+"name": "Mice",
+"players": {
+"PlayerID": [
+3,
+0,
+7,
+4,
+2
+],
+"Name": [
+"Lysander",
+"Girijan",
+"Jaise",
+"Dalong",
+"Patryk"
+]
+},
+"wins": 0,
+"losses": 0
+},
+"Snakes": {
+"name": "Snakes",
+"players": {
+"PlayerID": [
+8,
+6,
+1,
+9,
+5
+],
+"Name": [
+"Isaiah",
+"Layne",
+"Aiden",
+"Shiraz",
+"Marcel"
+]
+},
+"wins": 0,
+"losses": 0
+}
+}
