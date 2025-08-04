@@ -17,71 +17,58 @@ class Team:
 class Match:
 
     def __init__(self, t1, t2):
+        self.t1 = t1
+        self.t2 = t2
         self.t1rost = rosterize(t1)
         self.t2rost = rosterize(t2)
         self.t1score = 0
         self.t2score = 0
         
-
+        self.haspossession = self.t1rost # tracks which team has possession (1 for t1, 2 for t2)
         self.currentq = 1
         self.gametime = 0.00
         self.qtime = 12.00
         
-
+    # controls the whole game
     def play(self):
 
-        # tip off (give the ball to one team for now)
-        
-        # possession1, possession2, etc until end of game
-        '''
-        while game is running:
-            whichever team has the ball, run the possession for them
-
-        '''
-        pass
-
-    def possession(self, team):
-
-        shotclock = 24
-
-        while shotclock > 0:
             
-            pass
-
-        '''
-        in a given possession:
-        take whichever player has the ball, and decide what they're going to do
-        try and do it, based on the result:
-        if pass:
-            if turnover - end possession
-            if success - run again with new player and increment time
-        if shot:
-            if make - add to point total and end possession
-            if miss - decide who gets rebound
-                if current team - continue possession with updated shot clock
-                if other team - end possession
-        if move:
-            if success - update player possession, increment time, and continue possession
-            if failure - turnover, end possession
-        '''
 
         pass
+
+
+    # sims a possession given both lineups on the floor, returns which team (and who on it) gets next possession
+    def simPossession(self, t1Lineup, t2Lineup, ballhandler):
+
+        
+
+
+        pass
+
+    def simPlay(self, player):
+
+        # first, decide what the player will attempt
+        
+
+        # then run the attempt against their defender
+        matchup = rand.randint(0, 4)
+
+
+        pass
+
 
 class Player:
 
     def __init__(self, data):
         self.hasball = False
-        self.coords = [0,0]
         self.data = data
     
-    def move(self, target):
+    def decide(self):
+
+        shotodds = self.data.get("ShotTend")
+
         pass
-    
-    def swing(self, target):
-        pass
-    
-    def shoot(self):
-        pass
+
 
 # takes in a dictionary of players, and spits out a list of player objects containing the player data - used in match simulation
 def rosterize(playersdict): 
@@ -99,10 +86,24 @@ def rosterize(playersdict):
 # generate a given amount of players (random)
 def gen_players(amount):
     
-    dict = {"PlayerID": [], "Name": []}
+    dict = {"PlayerID": [], "Name": [], "ThreeShot": [], "MidShot": [], "LayShot": [], "PerDef": [], "PaintDef": [], "ShotTend": [], "ThreeTend": []
+            , "MidTend": [], "LayTend": [], "PassTend": []}
     for i in range(amount):
         dict["PlayerID"].append(i)
         dict["Name"].append(names[rand.randint(0, len(names) - 1)])
+        dict["ThreeShot"].append(rand.randint(40, 100))
+        dict["MidShot"].append(rand.randint(40, 100))
+        dict["LayShot"].append(rand.randint(40, 100))
+        dict["PerDef"].append(rand.randint(40, 100))
+        dict["PaintDef"].append(rand.randint(40, 100))
+
+        dict["ShotTend"].append(rand.randint(20, 70))
+        dict["ThreeTend"].append(rand.randint(20, 70))
+        dict["MidTend"].append(rand.randint(20, 70))
+        dict["LayTend"].append(rand.randint(20, 70))
+        dict["PassTend"].append(rand.randint(20, 70))
+        
+        
     
     return dict
 
@@ -114,29 +115,26 @@ def initializeTeams(t1, t2):
 
     players = gen_players(10) # get players
 
+    attributes = ["PlayerID", "Name", "ThreeShot", "MidShot", "LayShot", "PerDef", "PaintDef", "ShotTend", "ThreeTend", "MidTend", "LayTend", "PassTend"]
+
     # team 1 loop
     for i in range(5):
-        # select a random player(entire row)
+        # select a random player
         playertoadd = rand.randint(0, len(players["PlayerID"]) - 1)
 
         # add to team 1
-        t1.players["PlayerID"].append(players["PlayerID"][playertoadd])
-        t1.players["Name"].append(players["Name"][playertoadd])
+        for attribute in attributes:
+            t1.players[attribute].append(players[attribute][playertoadd])
+            players[attribute].pop(playertoadd) # remove from player list
 
-        # remove from players 
-        players["PlayerID"].pop(playertoadd)
-        players["Name"].pop(playertoadd)
-    
     # team 2 loop
     for i in range(5):
 
         playertoadd = rand.randint(0, len(players["PlayerID"]) - 1)
 
-        t2.players["PlayerID"].append(players["PlayerID"][playertoadd])
-        t2.players["Name"].append(players["Name"][playertoadd])
-
-        players["PlayerID"].pop(playertoadd)
-        players["Name"].pop(playertoadd)
+        for attribute in attributes:
+            t2.players[attribute].append(players[attribute][playertoadd])
+            players[attribute].pop(playertoadd)
 
     return
 
@@ -155,7 +153,7 @@ def save_teams(teams):
         teamdict[team.name] = team.__dict__
 
     with open("newteams.json", "w") as file:
-        file.write(json.dumps(teamdict, indent=""))
+        file.write(json.dumps(teamdict, indent=6))
     
 
 
@@ -186,62 +184,39 @@ def dict_to_team(dct):
 # controls everything
 def main():
 
-    pass    
+    mice = Team("Mice")
+    snakes = Team("Snakes")
+
+    initializeTeams(mice, snakes)
+
+    print(mice.players)
+    print(snakes.players)
+    save_teams([mice, snakes])
 
 main()
 
-# TODO: document your functions!
 # TODO: work on algorithm
 # TODO: plan out next steps
 
 
-'''
-ALGORITHM IDEAS:
-Notes from MIT paper:
-    - graphs are excellent for play-by-play sims
-    - factors in lineups really well
-    - training off of real data is great, but might not be right for me - kind of hard to say
-    - main concern is how do you even implement this kind of stuff
 
-The Ideal Sim
-    - is play-by-play
-    - takes lineups into account heavily
-    - includes things like fouls, rebounds, and turnovers
-    - takes time into account somehow
-    - takes matchups into account heavily
-
-Current Sim:
-    Takes into account:
-        - player ratings (6 stats meant to represent offensive and defensive value)
-        - hint of randomness to address varying performances
-        - thats basically it
 
 
 '''
 
-'''
-BRAIN BREAK - need a blank slate
-
-in a given possession:
-    take whichever player has the ball, and decide what they're going to do
-    try and do it, based on the result:
-    if pass:
-        if turnover - end possession
-        if success - run again with new player and increment time
-    if shot:
-        if make - add to point total and end possession
-        if miss - decide who gets rebound
-            if current team - continue possession with updated shot clock
-            if other team - end possession
-    if move:
-        if success - update player possession, increment time, and continue possession
-        if failure - turnover, end possession
-
-
-'''
-'''
-Data Storage for Players
-- stored in json as team objects containing pandas dfs
-
+Player Values:
+    Attributes:
+        3pt shot
+        2pt shot
+        layup/dunk
+        permimeter defense
+        paint defense
+    Tendancies:
+        overall shot tendancy
+        3pt tendancy
+        midrange tendancy
+        layup tendancy
+        pass tendency
+    
 
 '''

@@ -1,44 +1,184 @@
 {
-"Mice": {
-"name": "Mice",
-"players": {
-"PlayerID": [
-3,
-0,
-7,
-4,
-2
-],
-"Name": [
-"Lysander",
-"Girijan",
-"Jaise",
-"Dalong",
-"Patryk"
-]
-},
-"wins": 0,
-"losses": 0
-},
-"Snakes": {
-"name": "Snakes",
-"players": {
-"PlayerID": [
-8,
-6,
-1,
-9,
-5
-],
-"Name": [
-"Isaiah",
-"Layne",
-"Aiden",
-"Shiraz",
-"Marcel"
-]
-},
-"wins": 0,
-"losses": 0
-}
+      "Mice": {
+            "name": "Mice",
+            "players": {
+                  "PlayerID": [
+                        9,
+                        0,
+                        3,
+                        4,
+                        6
+                  ],
+                  "Name": [
+                        "Kris",
+                        "Marcous",
+                        "Declyan",
+                        "Conal",
+                        "Buddy"
+                  ],
+                  "ThreeShot": [
+                        95,
+                        76,
+                        88,
+                        98,
+                        60
+                  ],
+                  "MidShot": [
+                        95,
+                        46,
+                        92,
+                        80,
+                        77
+                  ],
+                  "LayShot": [
+                        62,
+                        52,
+                        64,
+                        66,
+                        49
+                  ],
+                  "PerDef": [
+                        90,
+                        74,
+                        42,
+                        67,
+                        47
+                  ],
+                  "PaintDef": [
+                        81,
+                        78,
+                        79,
+                        60,
+                        74
+                  ],
+                  "ShotTend": [
+                        43,
+                        54,
+                        21,
+                        70,
+                        31
+                  ],
+                  "ThreeTend": [
+                        54,
+                        22,
+                        34,
+                        68,
+                        62
+                  ],
+                  "MidTend": [
+                        35,
+                        20,
+                        41,
+                        38,
+                        43
+                  ],
+                  "LayTend": [
+                        47,
+                        63,
+                        22,
+                        59,
+                        24
+                  ],
+                  "PassTend": [
+                        51,
+                        47,
+                        60,
+                        42,
+                        62
+                  ]
+            },
+            "wins": 0,
+            "losses": 0
+      },
+      "Snakes": {
+            "name": "Snakes",
+            "players": {
+                  "PlayerID": [
+                        8,
+                        2,
+                        5,
+                        7,
+                        1
+                  ],
+                  "Name": [
+                        "Kye",
+                        "Dalong",
+                        "Marius",
+                        "Dilan",
+                        "Cahl"
+                  ],
+                  "ThreeShot": [
+                        43,
+                        86,
+                        86,
+                        55,
+                        63
+                  ],
+                  "MidShot": [
+                        87,
+                        63,
+                        43,
+                        47,
+                        52
+                  ],
+                  "LayShot": [
+                        68,
+                        52,
+                        63,
+                        95,
+                        47
+                  ],
+                  "PerDef": [
+                        49,
+                        69,
+                        79,
+                        42,
+                        46
+                  ],
+                  "PaintDef": [
+                        58,
+                        72,
+                        52,
+                        73,
+                        68
+                  ],
+                  "ShotTend": [
+                        56,
+                        36,
+                        53,
+                        70,
+                        52
+                  ],
+                  "ThreeTend": [
+                        38,
+                        32,
+                        24,
+                        67,
+                        31
+                  ],
+                  "MidTend": [
+                        60,
+                        49,
+                        57,
+                        46,
+                        39
+                  ],
+                  "LayTend": [
+                        66,
+                        20,
+                        53,
+                        68,
+                        31
+                  ],
+                  "PassTend": [
+                        54,
+                        49,
+                        47,
+                        44,
+                        24
+                  ]
+            },
+            "wins": 0,
+            "losses": 0
+      }
 }
