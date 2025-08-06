@@ -30,9 +30,8 @@ class Match:
         self.haspossession = self.t1rost # tracks which team has possession (t1, t2)
         self.pwithball = 0 # index of player with ball
 
-        self.currentq = 1
         self.gametime = 0.00
-        self.qtime = 12.00
+        self.totalpossessions = 0
 
       
         
@@ -41,7 +40,15 @@ class Match:
 
         while self.gametime <= 2880:
             self.simPossession(self.t1rost, self.t2rost)
-            print(self.gametime)
+
+        if self.t1score > self.t2score:
+            self.t1.wins += 1
+            self.t2.losses += 1
+            print(f"The {self.t1.name} Win")    
+        elif self.t2score > self.t1score:
+            self.t2.wins += 1
+            self.t1.losses += 1
+            print(f"The {self.t2.name} Win")    
         
         print(f"Final Score: \nThe {self.t1.name}: {self.t1score} \nThe {self.t2.name}: {self.t2score}")
         t1best = self.getBestPlayer(self.t1rost)
@@ -49,7 +56,7 @@ class Match:
 
         print(f"The {self.t1.name} best player: {t1best.data.get("Name")}, with {t1best.points} points on {t1best.fgper}% shooting ({t1best.shotsmade}/{t1best.shottot}) with {t1best.threes} threes")
         print(f"The {self.t2.name} best player: {t2best.data.get("Name")}, with {t2best.points} points on {t2best.fgper}% shooting ({t2best.shotsmade}/{t2best.shottot}) with {t2best.threes} threes")
-
+        print(self.totalpossessions)
     
     def getBestPlayer(self, roster):
 
@@ -168,6 +175,7 @@ class Match:
             self.haspossession = t2Lineup
         
         self.gametime += (24 - shotclock)
+        self.totalpossessions += 1
 
         return
     
@@ -428,12 +436,14 @@ def dict_to_team(dct):
 # controls everything
 def main():
 
-    mice = Team("Mice")
-    snakes = Team("Snakes")
+    teamdict = load_teams("newteams.json")
+    mice = dict_to_team(teamdict["Mice"])
+    snakes = dict_to_team(teamdict["Snakes"])
 
-    initializeTeams(mice, snakes)
+    #mice = Team("Mice")
+    #snakes = Team("Snakes")
 
-    save_teams([mice, snakes])
+    #initializeTeams(mice, snakes)
 
     
 
@@ -447,7 +457,9 @@ def main():
             awesomegame.play()
         else:
             break
-        
+
+    save_teams([mice, snakes])
+
 
 
 main()
