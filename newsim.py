@@ -1,4 +1,6 @@
-
+'''
+ROUGH WIP PLAY-BY-PLAY SIM
+'''
 import random as rand
 import json
 
@@ -14,70 +16,311 @@ class Team:
         self.wins = 0
         self.losses = 0
 
+# class for a game
 class Match:
 
     def __init__(self, t1, t2):
         self.t1 = t1
         self.t2 = t2
-        self.t1rost = rosterize(t1)
-        self.t2rost = rosterize(t2)
+        self.t1rost = rosterize(t1.players, "t1")
+        self.t2rost = rosterize(t2.players, "t2")
         self.t1score = 0
         self.t2score = 0
         
-        self.haspossession = self.t1rost # tracks which team has possession (1 for t1, 2 for t2)
+        self.haspossession = self.t1rost # tracks which team has possession (t1, t2)
+        self.pwithball = 0 # index of player with ball
+
         self.currentq = 1
         self.gametime = 0.00
         self.qtime = 12.00
+
+      
         
     # controls the whole game
     def play(self):
 
+        while self.gametime <= 2880:
+            self.simPossession(self.t1rost, self.t2rost)
+            print(self.gametime)
+        
+        print(f"Final Score: \nThe {self.t1.name}: {self.t1score} \nThe {self.t2.name}: {self.t2score}")
+        t1best = self.getBestPlayer(self.t1rost)
+        t2best = self.getBestPlayer(self.t2rost)
+
+        print(f"The {self.t1.name} best player: {t1best.data.get("Name")}, with {t1best.points} points on {t1best.fgper}% shooting ({t1best.shotsmade}/{t1best.shottot}) with {t1best.threes} threes")
+        print(f"The {self.t2.name} best player: {t2best.data.get("Name")}, with {t2best.points} points on {t2best.fgper}% shooting ({t2best.shotsmade}/{t2best.shottot}) with {t2best.threes} threes")
+
+    
+    def getBestPlayer(self, roster):
+
+        bestboy = Player(data={}, team="poo", i=0)
+        for player in roster:
+            if player.points > bestboy.points:
+                bestboy = player
+
+        return bestboy
+
+
+
+    # sims a possession given both lineups on the floor
+    def simPossession(self, t1Lineup, t2Lineup):
+        # shotclock
+        shotclock = 24
+
+        # ballhandler is set to specific player on specific team
+        ballhandler = self.haspossession[self.pwithball]
+
+        # for now, a player's matchup is just the player their index corresponds to on the other team
+        if ballhandler.team == "t1":
+            matchup = t2Lineup[ballhandler.index]
+            oppteam = t2Lineup
+        else:
+            matchup = t1Lineup[ballhandler.index]
+            oppteam = t1Lineup
+
+        while shotclock > 0:
+            amt = 0
             
+            outcome = self.simPlay(ballhandler, matchup)
+            # if turnover
+            if outcome[0] == "turnov":
+                self.pwithball = matchup.index
+                break
 
-        pass
+            # if 3pointer
+            elif outcome[0] == "threemade":
+                ballhandler.shotsmade += 1
+                ballhandler.shottot += 1
+                ballhandler.threes += 1
+                ballhandler.points += 3
+                ballhandler.getFGPer()
+                amt = 3
+                shotclock -= outcome[1]
+                break
+            elif outcome[0] == "threemissed":
+                ballhandler.shottot += 1
+                ballhandler.getFGPer()
+                shotclock -= outcome[1]
+                coinflip = rand.randint(0, 1)
+                if coinflip == 0:
+                    pass
+                else:
+                    self.pwithball = rand.choice(oppteam).index
+                    break
+                
+            # if middy
+            elif outcome[0] == "midmade":
+                ballhandler.shotsmade += 1
+                ballhandler.shottot += 1
+                ballhandler.points += 2
+                ballhandler.getFGPer()
+                amt = 2
+                shotclock -= outcome[1]
+                break
+            elif outcome[0] == "midmissed":
+                ballhandler.shottot += 1
+                ballhandler.getFGPer()
+                shotclock -= outcome[1]
+                coinflip = rand.randint(0, 1)
+                if coinflip == 0:
+                    pass
+                else:
+                    self.pwithball = rand.choice(oppteam).index
+                    break
 
+            # if layup
+            elif outcome[0] == "laymade":
+                ballhandler.shotsmade += 1
+                ballhandler.shottot += 1
+                ballhandler.points += 2
+                ballhandler.getFGPer()
+                amt = 2
+                shotclock -= outcome[1]
+                break
+            elif outcome[0] == "laymissed":
+                ballhandler.shottot += 1
+                ballhandler.getFGPer()
 
-    # sims a possession given both lineups on the floor, returns which team (and who on it) gets next possession
-    def simPossession(self, t1Lineup, t2Lineup, ballhandler):
+                shotclock -= outcome[1]
+                coinflip = rand.randint(0, 1)
+                if coinflip == 0:
+                    pass
+                else:
+                    self.pwithball = rand.choice(oppteam).index
+                    break
 
+            # if pass (currently passes to random player aside from the current ballhandler)
+            elif outcome[0] == "passmade":
+                newhandler = rand.randint(0, 4)
+                while newhandler == ballhandler.index:
+                    newhandler = rand.randint(0, 4)
+                ballhandler = self.haspossession[newhandler]
         
 
 
-        pass
+        # update score
+        self.updateScore(amt)
 
-    def simPlay(self, player):
+        # flip possession
+        if matchup.team == "t1":
+            self.haspossession = t1Lineup
+        elif matchup.team == "t2":
+            self.haspossession = t2Lineup
+        
+        self.gametime += (24 - shotclock)
+
+        return
+    
+    # returns outcome of play, and time ellapsed during play
+    # TODO: put this logic in another method
+    def simPlay(self, player, matchup):
 
         # first, decide what the player will attempt
-        
+        dec = player.decide()
 
         # then run the attempt against their defender
-        matchup = rand.randint(0, 4)
+        if dec == "three":
+            threeweight = round(player.threeshot / 100, 2)
+            defweight = round(matchup.perdef / 200, 2)
+            ovrweight = threeweight - defweight
+
+            outcome = player.flip(ovrweight)
+            if outcome == "H":
+                return ("threemade", 1)
+            else:
+                return ("threemissed", 3)
+        
+        elif dec == "mid":
+            midweight = round(player.midshot / 100, 2)
+            defweight = round(matchup.perdef / 250, 2)
+            ovrweight = midweight - defweight
+
+            outcome = player.flip(ovrweight)
+            if outcome == "H":
+                return ("midmade", 4)
+            else:
+                return ("midmissed", 6)
+        
+        elif dec == "lay":
+            layweight = round(player.layshot / 100, 2)
+            defweight = round(matchup.paintdef / 200, 2)
+            ovrweight = layweight - defweight
+
+            outcome = player.flip(ovrweight)
+            if outcome == "H":
+                return ("laymade", 6)
+            else:
+                return ("laymissed", 8)
+        
+        elif dec == "pass":
+            defweight = round(matchup.stl / 500, 2)
+            ovrweight = 1 - defweight
+
+            outcome = player.flip(ovrweight)
+            if outcome == "H":
+                return ("passmade", 1)
+            else:
+                return ("turnov", 1)
+            
+    def updateScore(self, amount):
+
+        if self.haspossession == self.t1rost:
+            self.t1score += amount
+        elif self.haspossession == self.t2rost:
+            self.t2score += amount
+            
+        
 
 
-        pass
+
+        
 
 
 class Player:
 
-    def __init__(self, data):
+    def __init__(self, data, i, team):
         self.hasball = False
+        self.team = team
         self.data = data
-    
+        self.index = i
+        
+        self.shotodds = data.get("ShotTend")
+        self.threeodds = data.get("ThreeTend")
+        self.midodds = data.get("MidTend")
+        self.layodds = data.get("LayTend")
+        self.passodds = data.get("PassTend")
+        self.threeshot = data.get("ThreeShot")
+        self.midshot = data.get("MidShot")
+        self.layshot = data.get("LayShot")
+        self.stl = data.get("Stl")
+        self.perdef = data.get("PerDef")
+        self.paintdef = data.get("PaintDef")
+
+        self.points = 0
+        self.threes = 0
+        self.shottot = 0
+        self.shotsmade = 0
+        self.fgper = 0
+
+    # returns what the player will try to do, returns three, mid, lay, or pass
     def decide(self):
 
-        shotodds = self.data.get("ShotTend")
+        # pass or shot
+        shotweight = round(self.shotodds / 100, 2)
+        por = self.flip(shotweight)
 
-        pass
+        if por == "H":
+            # if shot, decide what kind, first roll for three, then roll for mid or layup if necessary
+            threeweight = round(self.threeodds / 100, 2)
+            shottype = self.flip(threeweight)
+
+            if shottype == "H":
+                decision = "three"
+            else:
+                midweight = round(self.midodds / 100, 2)
+                layweight = round(self.layodds / 100, 2)
+                endpoint = midweight + layweight
+
+                shottype = self.flip(midweight, endpoint)
+
+                if shottype == "H":
+                    decision = "mid"
+                else:
+                    decision = "lay"
+        else:
+            decision = "pass"
+
+        return decision
+
+        
+
+    # flips a biased coin to decide something, returns heads or tails, odds decided by probability and endpoint
+    def flip(self, p, endp=1.0):
+
+        sample = rand.uniform(0, endp)
+
+        if sample < p:
+            return "H"
+        else:
+            return "T"
+
+    def getFGPer(self):
+        if self.shottot <= 0:
+            pass
+        else:
+            self.fgper = round((self.shotsmade / self.shottot) * 100)
+
+    
 
 
 # takes in a dictionary of players, and spits out a list of player objects containing the player data - used in match simulation
-def rosterize(playersdict): 
+def rosterize(playersdict, team): 
 
     playerlist = []
 
     for i in range(len(playersdict["PlayerID"])):
         playerdata = {key: value[i] for (key, value) in zip(playersdict.keys(), playersdict.values())}
-        playerobj = Player(playerdata)
+        playerobj = Player(playerdata, i, team)
         playerlist.append(playerobj)
 
     return playerlist
@@ -86,7 +329,7 @@ def rosterize(playersdict):
 # generate a given amount of players (random)
 def gen_players(amount):
     
-    dict = {"PlayerID": [], "Name": [], "ThreeShot": [], "MidShot": [], "LayShot": [], "PerDef": [], "PaintDef": [], "ShotTend": [], "ThreeTend": []
+    dict = {"PlayerID": [], "Name": [], "ThreeShot": [], "MidShot": [], "LayShot": [], "PerDef": [], "PaintDef": [], "Stl": [], "ShotTend": [], "ThreeTend": []
             , "MidTend": [], "LayTend": [], "PassTend": []}
     for i in range(amount):
         dict["PlayerID"].append(i)
@@ -96,6 +339,7 @@ def gen_players(amount):
         dict["LayShot"].append(rand.randint(40, 100))
         dict["PerDef"].append(rand.randint(40, 100))
         dict["PaintDef"].append(rand.randint(40, 100))
+        dict["Stl"].append(rand.randint(20, 70))
 
         dict["ShotTend"].append(rand.randint(20, 70))
         dict["ThreeTend"].append(rand.randint(20, 70))
@@ -115,7 +359,7 @@ def initializeTeams(t1, t2):
 
     players = gen_players(10) # get players
 
-    attributes = ["PlayerID", "Name", "ThreeShot", "MidShot", "LayShot", "PerDef", "PaintDef", "ShotTend", "ThreeTend", "MidTend", "LayTend", "PassTend"]
+    attributes = ["PlayerID", "Name", "ThreeShot", "MidShot", "LayShot", "PerDef", "PaintDef", "Stl", "ShotTend", "ThreeTend", "MidTend", "LayTend", "PassTend"]
 
     # team 1 loop
     for i in range(5):
@@ -189,9 +433,22 @@ def main():
 
     initializeTeams(mice, snakes)
 
-    print(mice.players)
-    print(snakes.players)
     save_teams([mice, snakes])
+
+    
+
+    #awesomegame = Match(mice, snakes)
+    #awesomegame.play()
+
+    while True:
+        ok = input("press enter to sim, enter anything else to exit")
+        if ok == "":
+            awesomegame = Match(mice, snakes)
+            awesomegame.play()
+        else:
+            break
+        
+
 
 main()
 
