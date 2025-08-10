@@ -9,7 +9,7 @@ names = ["Aaran", "Aaren", "Aarez", "Aarman", "Aaron", "Aaron-James", "Aarron", 
 # simple class for each team
 class Team:
 
-    # includes name and empty df to store players
+    # includes name and empty dictionary to store players
     def __init__(self, name):
         self.name = name
         self.players = gen_players(0)
@@ -54,9 +54,19 @@ class Match:
         t1best = self.getBestPlayer(self.t1rost)
         t2best = self.getBestPlayer(self.t2rost)
 
-        print(f"The {self.t1.name} best player: {t1best.data.get("Name")}, with {t1best.points} points on {t1best.fgper}% shooting ({t1best.shotsmade}/{t1best.shottot}) with {t1best.threes} threes")
-        print(f"The {self.t2.name} best player: {t2best.data.get("Name")}, with {t2best.points} points on {t2best.fgper}% shooting ({t2best.shotsmade}/{t2best.shottot}) with {t2best.threes} threes")
+        print(f"The {self.t1.name} best player: {t1best.data.get("Name")}, with {t1best.points} points on {t1best.fgper}% shooting ({t1best.shotsmade}/{t1best.shottot}) with {t1best.threes} threes, {t1best.mids} midrange shots, and {t1best.lays} layups")
+        print(f"The {self.t2.name} best player: {t2best.data.get("Name")}, with {t2best.points} points on {t2best.fgper}% shooting ({t2best.shotsmade}/{t2best.shottot}) with {t2best.threes} threes, {t2best.mids} midrange shots, and {t2best.lays} layups")
         print(self.totalpossessions)
+        
+        self.showStats()
+    
+    # quicklt shows the statline for every player on the starting rosters
+    def showStats(self):
+
+        for player in self.t1rost:
+            print(f"{player.data.get("Name")}: {player.points} points, {player.fgper} fg%, {player.threes} threes")
+        for player in self.t2rost:
+            print(f"{player.data.get("Name")}: {player.points} points, {player.fgper} fg%, {player.threes} threes")
     
     def getBestPlayer(self, roster):
 
@@ -98,8 +108,8 @@ class Match:
             elif outcome[0] == "threemade":
                 ballhandler.shotsmade += 1
                 ballhandler.shottot += 1
-                ballhandler.threes += 1
                 ballhandler.points += 3
+                ballhandler.logShot("three")
                 ballhandler.getFGPer()
                 amt = 3
                 shotclock -= outcome[1]
@@ -120,6 +130,7 @@ class Match:
                 ballhandler.shotsmade += 1
                 ballhandler.shottot += 1
                 ballhandler.points += 2
+                ballhandler.logShot("mid")
                 ballhandler.getFGPer()
                 amt = 2
                 shotclock -= outcome[1]
@@ -140,6 +151,7 @@ class Match:
                 ballhandler.shotsmade += 1
                 ballhandler.shottot += 1
                 ballhandler.points += 2
+                ballhandler.logShot("lay")
                 ballhandler.getFGPer()
                 amt = 2
                 shotclock -= outcome[1]
@@ -183,52 +195,65 @@ class Match:
     # TODO: put this logic in another method
     def simPlay(self, player, matchup):
 
+        # scalars for each stat - hand tuned and based on real(ish) fg%
+        threescale = 100 * 1.2375 # 99 = 80% when open
+        midscale = 100 * 1.32 # 99 = 85% when open 
+        layscale = 100 * 1.042 # 99 = 90% when open
+        perdefscale = 100 * 2.625 # 99 = 42.3% guarded fg
+        middefscale = 100 * 2.166 # 99 = 45.7% guarded fg
+        paintdefscale = 100 * 1.6445 # 99 = 60.2% guarded fg
+
+
+
         # first, decide what the player will attempt
         dec = player.decide()
 
         # then run the attempt against their defender
         if dec == "three":
-            threeweight = round(player.threeshot / 100, 2)
-            defweight = round(matchup.perdef / 200, 2)
+            threeweight = round(player.threeshot / threescale, 2)
+            defweight = round(matchup.perdef / perdefscale, 2)
             ovrweight = threeweight - defweight
 
             outcome = player.flip(ovrweight)
             if outcome == "H":
-                return ("threemade", 1)
+                return ("threemade", 14)
             else:
-                return ("threemissed", 3)
+                return ("threemissed", 16)
         
+        # mid attempt
         elif dec == "mid":
-            midweight = round(player.midshot / 100, 2)
-            defweight = round(matchup.perdef / 250, 2)
+            midweight = round(player.midshot / midscale, 2)
+            defweight = round(matchup.perdef / middefscale, 2)
             ovrweight = midweight - defweight
 
             outcome = player.flip(ovrweight)
             if outcome == "H":
-                return ("midmade", 4)
+                return ("midmade", 14)
             else:
                 return ("midmissed", 6)
         
+        # lay attempt
         elif dec == "lay":
-            layweight = round(player.layshot / 100, 2)
-            defweight = round(matchup.paintdef / 200, 2)
+            layweight = round(player.layshot / layscale, 2)
+            defweight = round(matchup.paintdef / paintdefscale, 2)
             ovrweight = layweight - defweight
 
             outcome = player.flip(ovrweight)
             if outcome == "H":
-                return ("laymade", 6)
+                return ("laymade", 14)
             else:
-                return ("laymissed", 8)
+                return ("laymissed", 16)
         
+        # pass attempt
         elif dec == "pass":
             defweight = round(matchup.stl / 500, 2)
             ovrweight = 1 - defweight
 
             outcome = player.flip(ovrweight)
             if outcome == "H":
-                return ("passmade", 1)
+                return ("passmade", 2)
             else:
-                return ("turnov", 1)
+                return ("turnov", 2)
             
     def updateScore(self, amount):
 
@@ -266,6 +291,8 @@ class Player:
 
         self.points = 0
         self.threes = 0
+        self.mids = 0
+        self.lays = 0
         self.shottot = 0
         self.shotsmade = 0
         self.fgper = 0
@@ -317,6 +344,16 @@ class Player:
             pass
         else:
             self.fgper = round((self.shotsmade / self.shottot) * 100)
+
+    # logs the shot in players stats given the type
+    def logShot(self, shottype):
+
+        if shottype == "lay":
+            self.lays += 1
+        elif shottype == "three":
+            self.threes += 1
+        elif shottype == "mid":
+            self.mids += 1
 
     
 
@@ -436,7 +473,7 @@ def dict_to_team(dct):
 # controls everything
 def main():
 
-    teamdict = load_teams("newteams.json")
+    teamdict = load_teams("knickscavs.json")
     mice = dict_to_team(teamdict["Mice"])
     snakes = dict_to_team(teamdict["Snakes"])
 
@@ -464,28 +501,21 @@ def main():
 
 main()
 
-# TODO: work on algorithm
-# TODO: plan out next steps
-
-
-
 
 
 '''
-
-Player Values:
-    Attributes:
-        3pt shot
-        2pt shot
-        layup/dunk
-        permimeter defense
-        paint defense
-    Tendancies:
-        overall shot tendancy
-        3pt tendancy
-        midrange tendancy
-        layup tendancy
-        pass tendency
-    
+ALGORITHM 2.0:
+Strengths:
+    - now produces box scores
+    - is entirely play-by-play, with varying amounts of possessions per game
+    - when scaled correctly, produces decently realistic final scores
+Weaknesses:
+    - realllly hard to tweak with
+    - every action takes the same time
+    - scaled terribly at the moment
+    - doesnt take into account player movement or plays
+    - everything is a biased coin flip
 
 '''
+
+

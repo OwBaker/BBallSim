@@ -1,5 +1,5 @@
 {
-      "Knicks": {
+      "Mice": {
             "name": "Knicks",
             "players": {
                   "PlayerID": [
@@ -94,10 +94,10 @@
                         70
                   ]
             },
-            "wins": 39,
-            "losses": 68
+            "wins": 0,
+            "losses": 0
       },
-      "Cavs": {
+      "Snakes": {
             "name": "Cavs",
             "players": {
                   "PlayerID": [
@@ -192,7 +192,7 @@
                         40
                   ]
             },
-            "wins": 68,
-            "losses": 39
+            "wins": 0,
+            "losses": 0
       }
 }
