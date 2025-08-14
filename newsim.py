@@ -15,6 +15,8 @@ class Team:
         self.players = gen_players(0)
         self.wins = 0
         self.losses = 0
+        self.avgpts = 0.0
+        self.gamescores = []
 
 # class for a game
 class Match:
@@ -24,6 +26,8 @@ class Match:
         self.t2 = t2
         self.t1rost = rosterize(t1.players, "t1")
         self.t2rost = rosterize(t2.players, "t2")
+        self.t1bench = rosterize(t1.players, "t1", "bench")
+        self.t2bench = rosterize(t2.players, "t2", "bench")
         self.t1score = 0
         self.t2score = 0
         
@@ -32,6 +36,7 @@ class Match:
 
         self.gametime = 0.00
         self.totalpossessions = 0
+        self.quarter = 1
 
       
         
@@ -39,7 +44,12 @@ class Match:
     def play(self):
 
         while self.gametime <= 2880:
-            self.simPossession(self.t1rost, self.t2rost)
+
+            if self.quarter == 2:
+                self.simPossession(self.t1bench, self.t2bench)
+            else:
+                self.simPossession(self.t1rost, self.t2rost)
+            
 
         if self.t1score > self.t2score:
             self.t1.wins += 1
@@ -57,7 +67,10 @@ class Match:
         print(f"The {self.t1.name} best player: {t1best.data.get("Name")}, with {t1best.points} points on {t1best.fgper}% shooting ({t1best.shotsmade}/{t1best.shottot}) with {t1best.threes} threes, {t1best.mids} midrange shots, and {t1best.lays} layups")
         print(f"The {self.t2.name} best player: {t2best.data.get("Name")}, with {t2best.points} points on {t2best.fgper}% shooting ({t2best.shotsmade}/{t2best.shottot}) with {t2best.threes} threes, {t2best.mids} midrange shots, and {t2best.lays} layups")
         print(self.totalpossessions)
-        
+
+        self.t1.gamescores.append(self.t1score)
+        self.t2.gamescores.append(self.t2score)
+
         self.showStats()
     
     # quicklt shows the statline for every player on the starting rosters
@@ -188,8 +201,20 @@ class Match:
         
         self.gametime += (24 - shotclock)
         self.totalpossessions += 1
+        self.updateQuarter()
 
         return
+    
+    def updateQuarter(self):
+
+        if self.gametime <= 720:
+            self.quarter = 1
+        elif self.gametime <= 1440 and self.gametime > 720:
+            self.quarter = 2
+        elif self.gametime <= 2160 and self.gametime > 1440:
+            self.quarter = 3
+        elif self.gametime <= 2880 and self.gametime > 2160:
+            self.quarter = 4
     
     # returns outcome of play, and time ellapsed during play
     # TODO: put this logic in another method
@@ -272,7 +297,6 @@ class Match:
 class Player:
 
     def __init__(self, data, i, team):
-        self.hasball = False
         self.team = team
         self.data = data
         self.index = i
@@ -359,16 +383,31 @@ class Player:
 
 
 # takes in a dictionary of players, and spits out a list of player objects containing the player data - used in match simulation
-def rosterize(playersdict, team): 
+def rosterize(playersdict, team, mode='start'): 
 
+    # for now, this function has hard coded modes just to divide up starting and bench lineup
     playerlist = []
 
-    for i in range(len(playersdict["PlayerID"])):
-        playerdata = {key: value[i] for (key, value) in zip(playersdict.keys(), playersdict.values())}
-        playerobj = Player(playerdata, i, team)
-        playerlist.append(playerobj)
+    if mode == 'start':
+        for i in range(5):
+            playerdata = {key: value[i] for (key, value) in zip(playersdict.keys(), playersdict.values())}
+            playerobj = Player(playerdata, i, team)
+            playerlist.append(playerobj)
+    elif mode == "bench":
+        for i in range(5, 10):
+            playerdata = {key: value[i] for (key, value) in zip(playersdict.keys(), playersdict.values())}
+            playerobj = Player(playerdata, (i - 5), team)
+            playerlist.append(playerobj)
 
     return playerlist
+
+def updateAveragePts(team):
+
+    totalpts = 0
+    for x in team.gamescores:
+        totalpts += x
+
+    team.avgpts = round(totalpts / len(team.gamescores), 1)
     
 
 # generate a given amount of players (random)
@@ -482,10 +521,7 @@ def main():
 
     #initializeTeams(mice, snakes)
 
-    
 
-    #awesomegame = Match(mice, snakes)
-    #awesomegame.play()
 
     while True:
         ok = input("press enter to sim, enter anything else to exit")
@@ -494,6 +530,9 @@ def main():
             awesomegame.play()
         else:
             break
+
+    updateAveragePts(mice)
+    updateAveragePts(snakes)
 
     save_teams([mice, snakes])
 
