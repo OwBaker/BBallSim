@@ -99,7 +99,8 @@ class Match:
 
         # ballhandler is set to specific player on specific team
         ballhandler = self.haspossession[self.pwithball]
-
+        
+        # get matchup
         # for now, a player's matchup is just the player their index corresponds to on the other team
         if ballhandler.team == "t1":
             matchup = t2Lineup[ballhandler.index]
@@ -109,9 +110,11 @@ class Match:
             oppteam = t1Lineup
 
         while shotclock > 0:
+            # stores amount to adjust score after possession
             amt = 0
             
-            outcome = self.simPlay(ballhandler, matchup)
+            outcome = self.simPlay(ballhandler, matchup, shotclock)
+
             # if turnover
             if outcome[0] == "turnov":
                 self.pwithball = matchup.index
@@ -218,7 +221,9 @@ class Match:
     
     # returns outcome of play, and time ellapsed during play
     # TODO: put this logic in another method
-    def simPlay(self, player, matchup):
+    def simPlay(self, player, matchup, shotclock):
+
+        timeElapsed = 0.0
 
         # scalars for each stat - hand tuned and based on real(ish) fg%
         threescale = 100 * 1.2375 # 99 = 80% when open
@@ -228,11 +233,61 @@ class Match:
         middefscale = 100 * 2.166 # 99 = 45.7% guarded fg
         paintdefscale = 100 * 1.6445 # 99 = 60.2% guarded fg
 
+        # get current team position
+        teampos = self.getTeamPos(player.team)
 
+        # first, decide what the player will attempt - returns (destination, action)
+        dec = player.newdecide(teampos, shotclock)
 
-        # first, decide what the player will attempt
-        dec = player.decide()
+        # handle movement
+        player.loc = dec[0]
+        # TODO: add logic to compute time spent moving
 
+        # TODO: add logic to compute time spent shooting/passing
+        # handle action
+        if dec[1] == "shot":
+            
+            if player.loc == "outside":
+                threeweight = round(player.threeshot / threescale, 2)
+                defweight = round(matchup.perdef / perdefscale, 2)
+                threeweight -= defweight
+                missweight = 1.0 - threeweight
+                
+                outcome = player.newflip((threeweight, "threemade"), (missweight, "threemissed"))
+
+            
+                
+            elif player.loc == "inside":
+                midweight = round(player.midshot / midscale, 2)
+                defweight = round(matchup.perdef / middefscale, 2)
+                midweight -= defweight
+                missweight = 1.0 - midweight
+
+                outcome = player.newflip((midweight, "midmade"), (missweight, "midmissed"))
+
+                
+
+            elif player.loc == "close":
+                layweight = round(player.layshot / layscale, 2)
+                defweight = round(matchup.paintdef / paintdefscale, 2)
+                layweight -= defweight
+                missweight = 1.0 - layweight
+                
+                outcome = player.newflip((layweight, "laymade"), (missweight, "laymissed"))
+
+                
+
+        elif dec[1] == "pass":
+            defweight = round(matchup.stl / 500, 2)
+            ovrweight = 1 - defweight
+
+            outcome = player.newflip((ovrweight, "passmade"), (defweight, "turnov"))
+
+            timeElapsed += 1
+
+        return (outcome, timeElapsed)
+        
+        '''
         # then run the attempt against their defender
         if dec == "three":
             threeweight = round(player.threeshot / threescale, 2)
@@ -279,6 +334,17 @@ class Match:
                 return ("passmade", 2)
             else:
                 return ("turnov", 2)
+        '''
+    
+    # calculates point differential
+    def getTeamPos(self, team):
+
+        if team == "t1":
+            teampos = self.t1score - self.t2score
+        else:
+            teampos = self.t2score - self.t1score
+
+        return teampos
             
     def updateScore(self, amount):
 
@@ -312,7 +378,11 @@ class Player:
         self.stl = data.get("Stl")
         self.perdef = data.get("PerDef")
         self.paintdef = data.get("PaintDef")
-
+        self.speed = data.get("Speed") # need to add still
+        self.handle = data.get("BallHandle") # need to add still
+        self.bestshot = self.getBestShot()
+        
+        self.loc = "outside"
         self.points = 0
         self.threes = 0
         self.mids = 0
@@ -351,6 +421,53 @@ class Player:
 
         return decision
 
+    
+    # an updated verison of decide that updates player location to determine what shot they take, returns a tuple formatted as such: (destination, action)
+    def newdecide(self, teampos, sclock):
+
+        # compute odds for each possible decision
+        shotweight = round(self.shotodds / 100, 2)
+        passweight = round(self.passodds / 100, 2)
+
+        threeweight = round(self.threeodds / 100, 2)
+        midweight = round(self.midodds / 100, 2)
+        layweight = round(self.layodds / 100, 2)
+
+        # change offensive tempo depending on team's position in game, might change to string later
+        if teampos <= -15:
+            clocklimit = 8
+        elif teampos <= -10:
+            clocklimit = 5
+        elif teampos == 0:
+            clocklimit = 3
+        elif teampos > 0:
+            clocklimit = 2
+        elif teampos > 10:
+            clocklimit = 1
+        
+        # use shotclock to adjust pace (more likely to shoot as clocklimit is reached and surpassed)
+        if sclock <= clocklimit:
+
+            shotincrease = round((clocklimit / sclock) / 100, 2)
+
+            shotweight += shotincrease
+            passweight -= shotincrease
+        
+        
+        # catch any negative values
+        for val in [shotweight, passweight]:
+            if val < 0:
+                val = 0.0
+        
+        # first, run a movement/drive check
+        drive = self.newflip((threeweight, "outside"), (midweight, "inside"), (layweight, "close"))
+
+        # then, decide what the player will do at their location
+        decision = self.newflip((shotweight, "shot"), (passweight, "pass"))
+
+        return (drive, decision)
+
+
         
 
     # flips a biased coin to decide something, returns heads or tails, odds decided by probability and endpoint
@@ -362,6 +479,59 @@ class Player:
             return "H"
         else:
             return "T"
+    
+    # takes tuples of events and probabilities, and returns which event will occur
+    def newflip(*args):
+        '''
+        Each argument is a tuple formatted as such:
+        [0] - corresponds to probability of event
+        [1] - corresponds to the event itself
+        '''
+        # create list to store dictionaries that contain the range for each event and the event name
+        ranges = []
+        start = 0
+
+        # iterate through arguments and get the decimal range for each outcome
+        for lst in args:
+            stop = start + lst[0]
+            event = lst[1]
+            ranges.append({
+                "start": start,
+                "stop": stop,
+                "event": event
+            })
+            start = stop
+
+        # get random number
+        sample = rand.uniform(0, 1.0)
+
+        # check where number falls in ranges
+        for rang in ranges:
+            if sample > rang["start"] and sample <= rang["stop"]:
+                outcome = rang["event"]
+
+        return outcome
+    
+    # gets the player's best shot for use in movement logic
+    def getBestShot(self):
+
+        shots = [self.threeshot, self.midshot, self.layshot]
+        shotids = {
+            0: "three",
+            1: "mid",
+            2: "lay,"
+        }
+
+        shotval = 0
+        bestshot = ""
+        for i in range(len(shots)):
+            if shots[i] > bestshot:
+                shotval = shots[i]
+                bestshot = shotids[i]
+            
+        return bestshot    
+
+
 
     def getFGPer(self):
         if self.shottot <= 0:
@@ -539,22 +709,4 @@ def main():
 
 
 main()
-
-
-
-'''
-ALGORITHM 2.0:
-Strengths:
-    - now produces box scores
-    - is entirely play-by-play, with varying amounts of possessions per game
-    - when scaled correctly, produces decently realistic final scores
-Weaknesses:
-    - realllly hard to tweak with
-    - every action takes the same time
-    - scaled terribly at the moment
-    - doesnt take into account player movement or plays
-    - everything is a biased coin flip
-
-'''
-
 
