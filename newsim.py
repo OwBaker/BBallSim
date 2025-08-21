@@ -37,6 +37,9 @@ class Match:
         self.gametime = 0.00
         self.totalpossessions = 0
         self.quarter = 1
+        self.possessionlens = []
+        self.offthebats = 0
+        self.shots = 0
 
       
         
@@ -64,22 +67,31 @@ class Match:
         t1best = self.getBestPlayer(self.t1rost)
         t2best = self.getBestPlayer(self.t2rost)
 
-        print(f"The {self.t1.name} best player: {t1best.data.get("Name")}, with {t1best.points} points on {t1best.fgper}% shooting ({t1best.shotsmade}/{t1best.shottot}) with {t1best.threes} threes, {t1best.mids} midrange shots, and {t1best.lays} layups")
-        print(f"The {self.t2.name} best player: {t2best.data.get("Name")}, with {t2best.points} points on {t2best.fgper}% shooting ({t2best.shotsmade}/{t2best.shottot}) with {t2best.threes} threes, {t2best.mids} midrange shots, and {t2best.lays} layups")
+        print(f"The {self.t1.name} best player: {t1best.data.get('Name')}, with {t1best.points} points on {t1best.fgper}% shooting ({t1best.shotsmade}/{t1best.shottot}) with {t1best.threes} threes, {t1best.mids} midrange shots, and {t1best.lays} layups")
+        print(f"The {self.t2.name} best player: {t2best.data.get('Name')}, with {t2best.points} points on {t2best.fgper}% shooting ({t2best.shotsmade}/{t2best.shottot}) with {t2best.threes} threes, {t2best.mids} midrange shots, and {t2best.lays} layups")
         print(self.totalpossessions)
 
         self.t1.gamescores.append(self.t1score)
         self.t2.gamescores.append(self.t2score)
 
         self.showStats()
+
+        totallen = 0
+        for x in self.possessionlens:
+            totallen += x
+
+        avglen = totallen / len(self.possessionlens)
+        print(avglen)
+        print(f"{self.offthebats} / {self.shots} shots were off rip")
+        
     
     # quicklt shows the statline for every player on the starting rosters
     def showStats(self):
 
         for player in self.t1rost:
-            print(f"{player.data.get("Name")}: {player.points} points, {player.fgper} fg%, {player.threes} threes")
+            print(f"{player.data.get('Name')}: {player.points} points, {player.fgper} fg%, {player.threes} threes")
         for player in self.t2rost:
-            print(f"{player.data.get("Name")}: {player.points} points, {player.fgper} fg%, {player.threes} threes")
+            print(f"{player.data.get('Name')}: {player.points} points, {player.fgper} fg%, {player.threes} threes")
     
     def getBestPlayer(self, roster):
 
@@ -94,6 +106,12 @@ class Match:
 
     # sims a possession given both lineups on the floor
     def simPossession(self, t1Lineup, t2Lineup):
+        
+        for x in t1Lineup:
+            x.loc = "outside"
+        for x in t2Lineup:
+            x.loc = "outside"
+
         # shotclock
         shotclock = 24
 
@@ -115,83 +133,90 @@ class Match:
             
             outcome = self.simPlay(ballhandler, matchup, shotclock)
 
-            # if turnover
-            if outcome[0] == "turnov":
-                self.pwithball = matchup.index
-                break
-
-            # if 3pointer
-            elif outcome[0] == "threemade":
-                ballhandler.shotsmade += 1
-                ballhandler.shottot += 1
-                ballhandler.points += 3
-                ballhandler.logShot("three")
-                ballhandler.getFGPer()
-                amt = 3
-                shotclock -= outcome[1]
-                break
-            elif outcome[0] == "threemissed":
-                ballhandler.shottot += 1
-                ballhandler.getFGPer()
-                shotclock -= outcome[1]
-                coinflip = rand.randint(0, 1)
-                if coinflip == 0:
-                    pass
-                else:
-                    self.pwithball = rand.choice(oppteam).index
-                    break
-                
-            # if middy
-            elif outcome[0] == "midmade":
-                ballhandler.shotsmade += 1
-                ballhandler.shottot += 1
-                ballhandler.points += 2
-                ballhandler.logShot("mid")
-                ballhandler.getFGPer()
-                amt = 2
-                shotclock -= outcome[1]
-                break
-            elif outcome[0] == "midmissed":
-                ballhandler.shottot += 1
-                ballhandler.getFGPer()
-                shotclock -= outcome[1]
-                coinflip = rand.randint(0, 1)
-                if coinflip == 0:
-                    pass
-                else:
-                    self.pwithball = rand.choice(oppteam).index
+            # check if time runs out during play
+            if shotclock - outcome[1] > 0:
+            
+                # if turnover
+                if outcome[0] == "turnov":
+                    self.pwithball = matchup.index
+                    shotclock -= outcome[1]
+                    print("turnover")
                     break
 
-            # if layup
-            elif outcome[0] == "laymade":
-                ballhandler.shotsmade += 1
-                ballhandler.shottot += 1
-                ballhandler.points += 2
-                ballhandler.logShot("lay")
-                ballhandler.getFGPer()
-                amt = 2
-                shotclock -= outcome[1]
-                break
-            elif outcome[0] == "laymissed":
-                ballhandler.shottot += 1
-                ballhandler.getFGPer()
-
-                shotclock -= outcome[1]
-                coinflip = rand.randint(0, 1)
-                if coinflip == 0:
-                    pass
-                else:
-                    self.pwithball = rand.choice(oppteam).index
+                # if 3pointer
+                elif outcome[0] == "threemade":
+                    ballhandler.shotsmade += 1
+                    ballhandler.shottot += 1
+                    ballhandler.points += 3
+                    ballhandler.logShot("three")
+                    ballhandler.getFGPer()
+                    amt = 3
+                    shotclock -= outcome[1]
                     break
+                elif outcome[0] == "threemissed":
+                    ballhandler.shottot += 1
+                    ballhandler.getFGPer()
+                    shotclock -= outcome[1]
+                    coinflip = rand.randint(0, 1)
+                    if coinflip == 0:
+                        pass
+                    else:
+                        self.pwithball = rand.choice(oppteam).index
+                        break
+                    
+                # if middy
+                elif outcome[0] == "midmade":
+                    ballhandler.shotsmade += 1
+                    ballhandler.shottot += 1
+                    ballhandler.points += 2
+                    ballhandler.logShot("mid")
+                    ballhandler.getFGPer()
+                    amt = 2
+                    shotclock -= outcome[1]
+                    break
+                elif outcome[0] == "midmissed":
+                    ballhandler.shottot += 1
+                    ballhandler.getFGPer()
+                    shotclock -= outcome[1]
+                    coinflip = rand.randint(0, 1)
+                    if coinflip == 0:
+                        pass
+                    else:
+                        self.pwithball = rand.choice(oppteam).index
+                        break
 
-            # if pass (currently passes to random player aside from the current ballhandler)
-            elif outcome[0] == "passmade":
-                newhandler = rand.randint(0, 4)
-                while newhandler == ballhandler.index:
+                # if layup
+                elif outcome[0] == "laymade":
+                    ballhandler.shotsmade += 1
+                    ballhandler.shottot += 1
+                    ballhandler.points += 2
+                    ballhandler.logShot("lay")
+                    ballhandler.getFGPer()
+                    amt = 2
+                    shotclock -= outcome[1]
+                    break
+                elif outcome[0] == "laymissed":
+                    
+                    ballhandler.shottot += 1
+                    ballhandler.getFGPer()
+
+                    shotclock -= outcome[1]
+                    coinflip = rand.randint(0, 1)
+                    if coinflip == 0:
+                        pass
+                    else:
+                        self.pwithball = rand.choice(oppteam).index
+                        break
+
+                # if pass (currently passes to random player aside from the current ballhandler)
+                elif outcome[0] == "passmade":
                     newhandler = rand.randint(0, 4)
-                ballhandler = self.haspossession[newhandler]
-        
-
+                    while newhandler == ballhandler.index:
+                        newhandler = rand.randint(0, 4)
+                    ballhandler = self.haspossession[newhandler]
+            else:
+                break
+                
 
         # update score
         self.updateScore(amt)
@@ -201,8 +226,17 @@ class Match:
             self.haspossession = t1Lineup
         elif matchup.team == "t2":
             self.haspossession = t2Lineup
-        
-        self.gametime += (24 - shotclock)
+
+        if shotclock > 0:
+            self.gametime += (24 - shotclock)
+            self.possessionlens.append((24 - shotclock))
+            print(24 - shotclock)
+        else:
+            self.gametime += 24
+            self.possessionlens.append(24)
+            print(24)
+
+
         self.totalpossessions += 1
         self.updateQuarter()
 
@@ -235,17 +269,21 @@ class Match:
 
         # get current team position
         teampos = self.getTeamPos(player.team)
-
+        
         # first, decide what the player will attempt - returns (destination, action)
         dec = player.newdecide(teampos, shotclock)
 
-        # handle movement
+        # handle movement and itme spent moving (no defensive check for now)
+        traveltime = self.getTravelTime(player, player.loc, dec[0])
+        timeElapsed += traveltime
         player.loc = dec[0]
-        # TODO: add logic to compute time spent moving
 
-        # TODO: add logic to compute time spent shooting/passing
         # handle action
         if dec[1] == "shot":
+
+            self.shots += 1
+            if timeElapsed < 1.0:
+                self.offthebats += 1
             
             if player.loc == "outside":
                 threeweight = round(player.threeshot / threescale, 2)
@@ -253,10 +291,10 @@ class Match:
                 threeweight -= defweight
                 missweight = 1.0 - threeweight
                 
-                outcome = player.newflip((threeweight, "threemade"), (missweight, "threemissed"))
-
-            
                 
+                outcome = player.newflip((threeweight, "threemade"), (missweight, "threemissed"))
+                timeElapsed += self.getShotTIme(player, shot="three", outcome=outcome)
+
             elif player.loc == "inside":
                 midweight = round(player.midshot / midscale, 2)
                 defweight = round(matchup.perdef / middefscale, 2)
@@ -264,7 +302,7 @@ class Match:
                 missweight = 1.0 - midweight
 
                 outcome = player.newflip((midweight, "midmade"), (missweight, "midmissed"))
-
+                timeElapsed += self.getShotTIme(player, shot="mid", outcome=outcome)
                 
 
             elif player.loc == "close":
@@ -274,6 +312,7 @@ class Match:
                 missweight = 1.0 - layweight
                 
                 outcome = player.newflip((layweight, "laymade"), (missweight, "laymissed"))
+                timeElapsed += self.getShotTIme(player, shot="lay", outcome=outcome)
 
                 
 
@@ -284,6 +323,7 @@ class Match:
             outcome = player.newflip((ovrweight, "passmade"), (defweight, "turnov"))
 
             timeElapsed += 1
+
 
         return (outcome, timeElapsed)
         
@@ -336,6 +376,50 @@ class Match:
                 return ("turnov", 2)
         '''
     
+    # calculates a player's time spent moving given the player, the starting location, and the destination
+    def getTravelTime(self, player, start, dest):
+
+        markers = {
+            "outside":40,
+            "inside": 20,
+            "close": 0
+        }
+
+        speed = player.speed
+        distance = abs(markers[start] - markers[dest])
+        time = distance / speed
+        
+        #print(time)
+
+        return time
+
+    # returns time spent shooting given player, outcome and shot type
+    def getShotTIme(self, player, shot, outcome):
+
+        shotscale = 99 / 0.4
+
+        if shot == "three":
+            releaseTime = player.threeshot / shotscale
+            reboundTime = 0
+            if outcome == "threemissed":
+                reboundTime += 3
+
+        elif shot == "mid":
+            releaseTime = player.midshot / shotscale
+            reboundTime = 0
+            if outcome == "midmissed":
+                reboundTime += 2.5
+
+        elif shot == "lay":
+            releaseTime = player.layshot / shotscale
+            reboundTime = 0
+            if outcome == "laymissed":
+                reboundTime += 1
+
+    
+
+        return releaseTime + reboundTime
+
     # calculates point differential
     def getTeamPos(self, team):
 
@@ -379,8 +463,8 @@ class Player:
         self.perdef = data.get("PerDef")
         self.paintdef = data.get("PaintDef")
         self.speed = data.get("Speed") # need to add still
-        self.handle = data.get("BallHandle") # need to add still
-        self.bestshot = self.getBestShot()
+        #self.handle = data.get("BallHandle") # need to add still
+        #self.bestshot = self.getBestShot()
         
         self.loc = "outside"
         self.points = 0
@@ -433,17 +517,21 @@ class Player:
         midweight = round(self.midodds / 100, 2)
         layweight = round(self.layodds / 100, 2)
 
+
         # change offensive tempo depending on team's position in game, might change to string later
-        if teampos <= -15:
+        if teampos <= -20:
+            clocklimit = 10
+        elif teampos <= -10 and teampos > -20:
             clocklimit = 8
-        elif teampos <= -10:
+        elif teampos > -10 and teampos < 0:
             clocklimit = 5
         elif teampos == 0:
             clocklimit = 3
-        elif teampos > 0:
+        elif teampos > 0 and teampos < 10:
             clocklimit = 2
-        elif teampos > 10:
+        elif teampos >= 10:
             clocklimit = 1
+
         
         # use shotclock to adjust pace (more likely to shoot as clocklimit is reached and surpassed)
         if sclock <= clocklimit:
@@ -481,7 +569,7 @@ class Player:
             return "T"
     
     # takes tuples of events and probabilities, and returns which event will occur
-    def newflip(*args):
+    def newflip(self, *args):
         '''
         Each argument is a tuple formatted as such:
         [0] - corresponds to probability of event
@@ -492,9 +580,9 @@ class Player:
         start = 0
 
         # iterate through arguments and get the decimal range for each outcome
-        for lst in args:
-            stop = start + lst[0]
-            event = lst[1]
+        for tup in args:
+            stop = start + tup[0]
+            event = tup[1]
             ranges.append({
                 "start": start,
                 "stop": stop,
