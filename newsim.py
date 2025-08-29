@@ -40,6 +40,7 @@ class Match:
         self.possessionlens = []
         self.offthebats = 0
         self.shots = 0
+        self.passes = 0
 
       
         
@@ -83,6 +84,7 @@ class Match:
         avglen = totallen / len(self.possessionlens)
         print(avglen)
         print(f"{self.offthebats} / {self.shots} shots were off rip")
+        print(f"{self.passes} total passess")
         
     
     # quicklt shows the statline for every player on the starting rosters
@@ -135,7 +137,7 @@ class Match:
 
             # check if time runs out during play
             if shotclock - outcome[1] > 0:
-            
+
                 # if turnover
                 if outcome[0] == "turnov":
                     self.pwithball = matchup.index
@@ -210,11 +212,13 @@ class Match:
 
                 # if pass (currently passes to random player aside from the current ballhandler)
                 elif outcome[0] == "passmade":
+                    self.passes += 1
                     newhandler = rand.randint(0, 4)
                     while newhandler == ballhandler.index:
                         newhandler = rand.randint(0, 4)
                     ballhandler = self.haspossession[newhandler]
             else:
+                print("shotclock violation")
                 break
                 
 
@@ -230,11 +234,11 @@ class Match:
         if shotclock > 0:
             self.gametime += (24 - shotclock)
             self.possessionlens.append((24 - shotclock))
-            print(24 - shotclock)
+           # print(24 - shotclock)
         else:
             self.gametime += 24
             self.possessionlens.append(24)
-            print(24)
+            #print(24)
 
 
         self.totalpossessions += 1
@@ -274,7 +278,7 @@ class Match:
         dec = player.newdecide(teampos, shotclock)
 
         # handle movement and itme spent moving (no defensive check for now)
-        traveltime = self.getTravelTime(player, player.loc, dec[0])
+        traveltime = self.getTravelTime(player, matchup, player.loc, dec[0])
         timeElapsed += traveltime
         player.loc = dec[0]
 
@@ -377,21 +381,46 @@ class Match:
         '''
     
     # calculates a player's time spent moving given the player, the starting location, and the destination
-    def getTravelTime(self, player, start, dest):
+    def getTravelTime(self, player, matchup, start, dest):
 
+        # locations for court (in m)
         markers = {
-            "outside":40,
-            "inside": 20,
-            "close": 0
+            "outside":7.24, 
+            "inside": 4.572,
+            "close": 0.5
         }
 
         speed = player.speed
         distance = abs(markers[start] - markers[dest])
         time = distance / speed
         
-        #print(time)
+        # defensive slowdown
+        defenseFactor = self.onBallDefense(player, matchup)
 
-        return time
+        print(time + defenseFactor)
+
+        return time + defenseFactor
+    
+    # depending on defensive matchups, defense can add an extra 2-5 seconds to your dribble, or even provide a more open shot
+    def onBallDefense(self, player, matchup):
+        phandle = player.ballhandle
+        mdef = matchup.perdef
+
+        pbonus = phandle / 9.9
+        mbonus = mdef / 9.9
+
+        defroll = rand.randint(1, 20) + mbonus
+        offroll = rand.randint(1, 20) + pbonus
+
+        if defroll < offroll:
+            
+            slowdown = (60 / defroll)
+
+        else:
+
+            slowdown = (60 / offroll)
+
+        return slowdown
 
     # returns time spent shooting given player, outcome and shot type
     def getShotTIme(self, player, shot, outcome):
@@ -462,8 +491,8 @@ class Player:
         self.stl = data.get("Stl")
         self.perdef = data.get("PerDef")
         self.paintdef = data.get("PaintDef")
-        self.speed = data.get("Speed") # need to add still
-        #self.handle = data.get("BallHandle") # need to add still
+        self.speed = data.get("Speed")
+        self.ballhandle = data.get("BallHandle") # need to add still
         #self.bestshot = self.getBestShot()
         
         self.loc = "outside"
@@ -540,6 +569,15 @@ class Player:
 
             shotweight += shotincrease
             passweight -= shotincrease
+
+        # messing with this rn
+        else:
+
+            passincrease = round((sclock / clocklimit) / 150, 2)
+
+            shotweight -= passincrease
+            passweight += passincrease
+
         
         
         # catch any negative values
