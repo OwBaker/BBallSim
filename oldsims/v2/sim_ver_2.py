@@ -41,6 +41,7 @@ class Match:
         self.offthebats = 0
         self.shots = 0
         self.passes = 0
+        self.violations = 0
 
       
         
@@ -85,6 +86,7 @@ class Match:
         print(avglen)
         print(f"{self.offthebats} / {self.shots} shots were off rip")
         print(f"{self.passes} total passess")
+        print(f"{self.violations} total shotclock violations")
         
     
     # quicklt shows the statline for every player on the starting rosters
@@ -113,7 +115,7 @@ class Match:
             x.loc = "outside"
         for x in t2Lineup:
             x.loc = "outside"
-
+        
         # shotclock
         shotclock = 24
 
@@ -212,6 +214,7 @@ class Match:
 
                 # if pass (currently passes to random player aside from the current ballhandler)
                 elif outcome[0] == "passmade":
+                    shotclock -= outcome[1]
                     self.passes += 1
                     newhandler = rand.randint(0, 4)
                     while newhandler == ballhandler.index:
@@ -219,6 +222,9 @@ class Match:
                     ballhandler = self.haspossession[newhandler]
             else:
                 print("shotclock violation")
+                print(f"outcome: {outcome[0]}")
+                print(f"time over: {abs(shotclock - outcome[1])}")
+                self.violations += 1
                 break
                 
 
@@ -234,11 +240,11 @@ class Match:
         if shotclock > 0:
             self.gametime += (24 - shotclock)
             self.possessionlens.append((24 - shotclock))
-           # print(24 - shotclock)
+            print(24 - shotclock)
         else:
             self.gametime += 24
             self.possessionlens.append(24)
-            #print(24)
+            print(24)
 
 
         self.totalpossessions += 1
@@ -331,54 +337,6 @@ class Match:
 
         return (outcome, timeElapsed)
         
-        '''
-        # then run the attempt against their defender
-        if dec == "three":
-            threeweight = round(player.threeshot / threescale, 2)
-            defweight = round(matchup.perdef / perdefscale, 2)
-            ovrweight = threeweight - defweight
-
-            outcome = player.flip(ovrweight)
-            if outcome == "H":
-                return ("threemade", 14)
-            else:
-                return ("threemissed", 16)
-        
-        # mid attempt
-        elif dec == "mid":
-            midweight = round(player.midshot / midscale, 2)
-            defweight = round(matchup.perdef / middefscale, 2)
-            ovrweight = midweight - defweight
-
-            outcome = player.flip(ovrweight)
-            if outcome == "H":
-                return ("midmade", 14)
-            else:
-                return ("midmissed", 6)
-        
-        # lay attempt
-        elif dec == "lay":
-            layweight = round(player.layshot / layscale, 2)
-            defweight = round(matchup.paintdef / paintdefscale, 2)
-            ovrweight = layweight - defweight
-
-            outcome = player.flip(ovrweight)
-            if outcome == "H":
-                return ("laymade", 14)
-            else:
-                return ("laymissed", 16)
-        
-        # pass attempt
-        elif dec == "pass":
-            defweight = round(matchup.stl / 500, 2)
-            ovrweight = 1 - defweight
-
-            outcome = player.flip(ovrweight)
-            if outcome == "H":
-                return ("passmade", 2)
-            else:
-                return ("turnov", 2)
-        '''
     
     # calculates a player's time spent moving given the player, the starting location, and the destination
     def getTravelTime(self, player, matchup, start, dest):
@@ -396,8 +354,6 @@ class Match:
         
         # defensive slowdown
         defenseFactor = self.onBallDefense(player, matchup)
-
-        print(time + defenseFactor)
 
         return time + defenseFactor
     
@@ -431,19 +387,19 @@ class Match:
             releaseTime = player.threeshot / shotscale
             reboundTime = 0
             if outcome == "threemissed":
-                reboundTime += 3
+                reboundTime += 1
 
         elif shot == "mid":
             releaseTime = player.midshot / shotscale
             reboundTime = 0
             if outcome == "midmissed":
-                reboundTime += 2.5
+                reboundTime += 0.5
 
         elif shot == "lay":
             releaseTime = player.layshot / shotscale
             reboundTime = 0
             if outcome == "laymissed":
-                reboundTime += 1
+                reboundTime += 0.2
 
     
 
@@ -549,47 +505,40 @@ class Player:
 
         # change offensive tempo depending on team's position in game, might change to string later
         if teampos <= -20:
-            clocklimit = 10
+            clocklimit = 20
         elif teampos <= -10 and teampos > -20:
-            clocklimit = 8
+            clocklimit = 14
         elif teampos > -10 and teampos < 0:
-            clocklimit = 5
+            clocklimit = 10
         elif teampos == 0:
-            clocklimit = 3
+            clocklimit = 9
         elif teampos > 0 and teampos < 10:
-            clocklimit = 2
+            clocklimit = 8
         elif teampos >= 10:
             clocklimit = 1
-
         
         # use shotclock to adjust pace (more likely to shoot as clocklimit is reached and surpassed)
         if sclock <= clocklimit:
 
-            shotincrease = round((clocklimit / sclock) / 100, 2)
+            shotincrease = round((clocklimit / sclock), 2)
 
             shotweight += shotincrease
             passweight -= shotincrease
-
-        # messing with this rn
-        else:
-
-            passincrease = round((sclock / clocklimit) / 150, 2)
-
-            shotweight -= passincrease
-            passweight += passincrease
-
         
         
         # catch any negative values
         for val in [shotweight, passweight]:
             if val < 0:
                 val = 0.0
-        
-        # first, run a movement/drive check
-        drive = self.newflip((threeweight, "outside"), (midweight, "inside"), (layweight, "close"))
 
         # then, decide what the player will do at their location
         decision = self.newflip((shotweight, "shot"), (passweight, "pass"))
+
+        if decision == "shot" and sclock < clocklimit:
+            drive = self.loc
+        else:      
+            # first, run a movement/drive check
+            drive = self.newflip((threeweight, "outside"), (midweight, "inside"), (layweight, "close"))
 
         return (drive, decision)
 
