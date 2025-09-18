@@ -14,9 +14,6 @@ Player Class
 
 '''
 
-'''
-ROUGH WIP PLAY-BY-PLAY SIM
-'''
 import random as rand
 import json
 
@@ -62,8 +59,12 @@ class Match:
     def play(self):
 
         # sim possessions til game ends
+        
+        while self.gametime < 2880:
+            self.simPossession()
 
-        pass
+        print(f"{self.teams["t1"].name} Score: {self.scores["t1"]}\n {self.teams["t2"].name} Score: {self.scores["t2"]}")
+        print(f"{self.totalpossessions} Possessions")
 
     def simPossession(self):
 
@@ -73,8 +74,7 @@ class Match:
         shotclock = 24
         time_elapsed = 0
 
-        while shotclock < 0:
-
+        while shotclock > 0:
             # get team position, and choose team goal (what shot, how fast, iso or run play)
             teampos = self.getTeamPos()
             goal = self.chooseGoal(teampos=teampos)
@@ -88,19 +88,81 @@ class Match:
             matchup = def_lineup[shooter.index ] # temporarily set defender to corresponding index on other team
 
             # run attempt
-            shot = self.shootIt(shooter, matchup, goal)
+            shot = self.shootIt(shooter, matchup, goal, shotclock)
+            print(shot)
 
             # if score, add to point totals and other stats
+            time_elapsed = shot[1]
+            shotclock -= time_elapsed
+        
+
+            if "made" in shot[0]:
+                shooter.logShot(shot[0])
+
+                match goal["shot"]:
+                    
+                    case "three":
+                        self.scores[self.haspossession] += 3
+                        break
+
+                    case "mid":
+                        self.scores[self.haspossession] += 2
+                        break
+
+                    case "lay":
+                        self.scores[self.haspossession] += 3
+                        break
+
+            # if miss, decide who (which team/player) gets rebound
+            elif "missed" in shot[0]:
+                shooter.logShot(shot[0])
+
+                rebound = self.checkRebound(off_lineup, def_lineup)
+                match rebound:
+                    case "offense":
+                        # if offensive rebound, set clock to 14
+                        shotclock = 14
+                        self.totalpossessions += 1
+                        self.possessionlens.append(time_elapsed)
+                        
+                    case "defense":
+                        # if defensive rebound
+                        break
+
+            elif "turnover" in shot[0]:
+                # if turnover, switch which team has possesion and end the possession
+                break
+
+        self.gametime += time_elapsed
+        self.switchPos()
+        self.totalpossessions += 1
+        self.possessionlens.append(time_elapsed)
+
+        
+        return
+        
+
+    def switchPos(self):
+        '''
+        switches which team has poessession
+        '''
+
+        temp = self.haspossession
+        self.haspossession = self.defending
+        self.defending = temp
+
+        return
             
 
-            # if offensive rebound, set clock to 14
+    def checkRebound(self, offense, defense):
+        '''
+        checks which team walks away with a rebound (coinflip for now)
+        '''
+        # TODO: make complex
+        
+        coin = flip((0.50, "offense"), (0.5, "defense"))
+        return coin
 
-            # if defensive rebound
-
-            # if turnover, switch which team has possesion and end the possession
-
-            # store the outcome of the previous possession/where possession starts from
-            pass
 
     def choosePlayer(self, goal, lineup):
         '''
@@ -246,7 +308,7 @@ class Match:
                 iso_odds = 0.40
             case "scoreSlow":
                 three_odds = 0.33
-                mid_odds = 0.33
+                mid_odds = 0.34
                 lay_odds = 0.33
                 play_odds = 0.80
                 iso_odds = 0.20
@@ -295,64 +357,133 @@ class Match:
         return pace
 
 
-    def shootIt(self, player, matchup, goal):
+    def shootIt(self, player, matchup, goal, shotclock):
         '''
-        takes player, matchup, and goal -> returns outcome of shot, time elapsed
+        takes player, matchup, and goal -> returns (outcome of shot, time elapsed)
         '''
-
-        # check for turnovers
 
         # calculate time spent depending on if it's a play or an iso possession, the player's ballhandle, and the time left
-        time_elapsed = self.getTimeSpent(goal)
-
-
+        time_elapsed = self.getTimeSpent(goal, shotclock)
+        
         # take the shot 
+        shot = self.getShotOutcome(player, matchup, goal)
 
         # return time spent and outcome
+        return (shot, time_elapsed)
 
-        pass
     
-    def getTimeSpent(self, goal):
+    def getShotOutcome(self, player, matchup, goal):
         '''
-        takes in goal and returns time elapsed during play (up until shot taken)
+        gets the outcome of a play based on player attributes, will eventually have chance for turnover
+        '''
+        threescale = 100 * 1.2375 # 99 = 80% when open
+        midscale = 100 * 1.32 # 99 = 85% when open 
+        layscale = 100 * 1.042 # 99 = 90% when open
+        perdefscale = 100 * 2.625 # 99 = 42.3% guarded fg
+        middefscale = 100 * 2.166 # 99 = 45.7% guarded fg
+        paintdefscale = 100 * 1.6445 # 99 = 60.2% guarded fg
+
+        if self.checkTurnover(matchup):
+            return "turnover"
+
+        match goal["shot"]:
+
+            case "three":
+                threeweight = round(player.threeshot / threescale, 2)
+                defweight = round(matchup.perdef / perdefscale, 2)
+                threeweight -= defweight
+                missweight = 1.0 - threeweight
+
+                outcome = flip((threeweight, "threemade"), (missweight, "threemissed"))
+
+            case "mid":
+                midweight = round(player.midshot / midscale, 2)
+                defweight = round(matchup.perdef / middefscale, 2)
+                midweight -= defweight
+                missweight = 1.0 - midweight
+                
+                outcome = flip((midweight, "midmade"), (missweight, "midmissed"))
+
+            case "lay":
+                layweight = round(player.layshot / layscale, 2)
+                defweight = round(matchup.paintdef / paintdefscale, 2)
+                layweight -= defweight
+                missweight = 1.0 - layweight
+                
+                outcome = flip((layweight, "laymade"), (missweight, "laymissed"))
+
+        return outcome
+
+    def checkTurnover(self, matchup):
+        '''
+        barebones function to check for turnovers, depends on defender steal
+        '''
+        defweight = round(matchup.stl / 500, 2)
+        ovrweight = 1 - defweight
+
+        turnover = flip((defweight, "steal"), (ovrweight, "nosteal"))
+
+        if turnover[1] == "steal":
+            return True
+        
+        return False
+
+
+
+    def getTimeSpent(self, goal, shotclock):
+        '''
+        takes in goal and returns time elapsed during play (up until shot taken) - depends on play and pace
         '''
         match goal["play"]:
+
             case "iso":
-                match goal["shot"]:
-                    case "three":
-                        match goal["pace"]:
-                            case "scoreNormal":
-                                pass
-                            case "scoreFast":
-                                pass
-                            case "scoreSlow":
-                                pass
-                            case "needThree":
-                                pass
-                        pass
-                    case "mid":
-                        match goal["pace"]:
-                            case "scoreNormal":
-                                pass
-                            case "scoreFast":
-                                pass
-                            case "scoreSlow":
-                                pass
-                        pass
-                    case "lay":
-                        match goal["pace"]:
-                            case "scoreNormal":
-                                pass
-                            case "scoreFast":
-                                pass
-                            case "scoreSlow":
-                                pass
-                        pass
+
+                match goal["pace"]:
+
+                    case "scoreNormal":
+
+                        timeSpent = rand.triangular(0, shotclock, ((1/2) * shotclock))
+                        return timeSpent
+                    
+                    case "scoreFast":
+
+                        timeSpent = rand.triangular(0, shotclock, ((1/4) * shotclock))
+                        return timeSpent
+                    
+                    case "scoreSlow":
+
+                        timeSpent = rand.triangular(0, shotclock, ((3/4) * shotclock))
+                        return timeSpent
+                    
+                    case "needThree":
+
+                        timeSpent = rand.triangular(0, shotclock, ((1/5) * shotclock))
+                        return timeSpent
+
             case "play":
-                pass
+                
+                match goal["pace"]:
 
+                    case "scoreNormal":
 
-        pass
+                        timeSpent = rand.triangular(0, shotclock, ((2/3) * shotclock))
+                        return timeSpent
+                    
+                    case "scoreFast":
+
+                        timeSpent = rand.triangular(0, shotclock, ((1/3) * shotclock))
+                        return timeSpent
+                    
+                    case "scoreSlow":
+
+                        timeSpent = rand.triangular(0, shotclock, ((3/4) * shotclock))
+                        return timeSpent
+                    
+                    case "needThree":
+
+                        timeSpent = rand.triangular(0, shotclock, ((1/4) * shotclock))
+                        return timeSpent
+
     
 
 
@@ -391,38 +522,37 @@ class Player:
         self.shotsmade = 0
         self.fgper = 0
 
-    
-    # takes tuples of events and probabilities, and returns which event will occur
-    def newflip(self, *args):
+    def logShot(self, outcome):
         '''
-        Each argument is a tuple formatted as such:
-        [0] - corresponds to probability of event
-        [1] - corresponds to the event itself
+        logs shot in player stats   
         '''
-        # create list to store dictionaries that contain the range for each event and the event name
-        ranges = []
-        start = 0
 
-        # iterate through arguments and get the decimal range for each outcome
-        for tup in args:
-            stop = start + tup[0]
-            event = tup[1]
-            ranges.append({
-                "start": start,
-                "stop": stop,
-                "event": event
-            })
-            start = stop
+        match outcome:
 
-        # get random number
-        sample = rand.uniform(0, 1.0)
+            case "threemade":
+                self.threes += 1
+                self.shottot += 1
+                self.points += 3
 
-        # check where number falls in ranges
-        for rang in ranges:
-            if sample > rang["start"] and sample <= rang["stop"]:
-                outcome = rang["event"]
+            case "threemissed":
+                self.shottot += 1
+            
+            case "midmade":
+                self.mids += 1
+                self.shottot += 1
+                self.points += 2
 
-        return outcome
+            case "midmissed":
+                self.shottot += 1
+
+            case "laymade":
+                self.lays += 1
+                self.shottot += 1
+                self.points += 2
+
+            case "laymissed":
+                self.shottot += 1
+        return
 
 def flip(*args):
         '''
@@ -446,7 +576,7 @@ def flip(*args):
             start = stop
 
         # get random number
-        sample = rand.uniform(0, 1.0)
+        sample = rand.uniform(0.01, 1.0)
 
         # check where number falls in ranges
         for rang in ranges:
@@ -576,37 +706,41 @@ def dict_to_team(dct):
     return teamobj
 
 # controls everything
-#def main():
-
-    #teamdict = load_teams("knickscavs.json")
-    #mice = dict_to_team(teamdict["Mice"])
-    #snakes = dict_to_team(teamdict["Snakes"])
-
-    #mice = Team("Mice")
-    #snakes = Team("Snakes")
-
-    #initializeTeams(mice, snakes)
-
-
-    #save_teams([mice, snakes])
-
-def testGetBestShooters():
+def main():
 
     teamdict = load_teams("testteams.json")
     mice = dict_to_team(teamdict["Knicks"])
     snakes = dict_to_team(teamdict["Cavs"])
 
-    testmatch = Match(mice, snakes)
+    while True:
+        sim = input("press enter to sim a match")
+        if sim == "":
+            game = Match(mice, snakes)
+            game.play()
+        else:
+            break
 
-    #bestshootas = testmatch.getBestShooters("three", testmatch.lineups["t1"], 1)
-    #for player in bestshootas:
-        #print(player.data)
+    #save_teams([mice, snakes])
+
+main()
+
+#def testGetBestShooters():
+
+    # teamdict = load_teams("testteams.json")
+    # mice = dict_to_team(teamdict["Knicks"])
+    # snakes = dict_to_team(teamdict["Cavs"])
+
+    # testmatch = Match(mice, snakes)
+
+    # #bestshootas = testmatch.getBestShooters("three", testmatch.lineups["t1"], 1)
+    # #for player in bestshootas:
+    #     #print(player.data)
     
-    bestiso = testmatch.getBestIso("mid", testmatch.lineups["t1"])
-    for player in bestiso:
-        print(player.data)
-    bestiso = testmatch.getBestIso("three", testmatch.lineups["t2"])
-    for player in bestiso:
-        print(player.data)
+    # bestiso = testmatch.getBestIso("mid", testmatch.lineups["t1"])
+    # for player in bestiso:
+    #     print(player.data)
+    # bestiso = testmatch.getBestIso("three", testmatch.lineups["t2"])
+    # for player in bestiso:
+    #     print(player.data)
 
-testGetBestShooters()  
+#testGetBestShooters()  
