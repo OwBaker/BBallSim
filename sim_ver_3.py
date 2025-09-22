@@ -50,7 +50,7 @@ class Match:
         self.gametime = 0.00
         self.totalpossessions = 0
         self.quarter = 1
-        self.possessionlens = []
+        self.quartertime = 720
         self.offthebats = 0
         self.shots = 0
         self.passes = 0
@@ -59,17 +59,25 @@ class Match:
     def play(self):
 
         # sim possessions til game ends
-        
+
         while self.gametime < 2880:
             self.simPossession()
 
+            if self.quartertime <= 0:
+                self.quarter += 1
+                self.quartertime = 720
+
         print(f"{self.teams["t1"].name} Score: {self.scores["t1"]}\n {self.teams["t2"].name} Score: {self.scores["t2"]}")
         print(f"{self.totalpossessions} Possessions")
+        self.showStats()
 
     def simPossession(self):
 
         off_lineup = self.lineups[self.haspossession]
         def_lineup = self.lineups[self.defending]
+        
+        if self.quartertime < 24:
+            shotclock = self.quartertime
         
         shotclock = 24
         time_elapsed = 0
@@ -88,13 +96,15 @@ class Match:
             matchup = def_lineup[shooter.index ] # temporarily set defender to corresponding index on other team
 
             # run attempt
-            shot = self.shootIt(shooter, matchup, goal, shotclock)
+            shot = self.shootIt(shooter, matchup, goal, shotclock) # todo: tweak time spent calculations to shave off ~50 possessions
             print(shot)
 
             # if score, add to point totals and other stats
             time_elapsed = shot[1]
             shotclock -= time_elapsed
-        
+
+            if shotclock < 0:
+                break
 
             if "made" in shot[0]:
                 shooter.logShot(shot[0])
@@ -123,7 +133,7 @@ class Match:
                         # if offensive rebound, set clock to 14
                         shotclock = 14
                         self.totalpossessions += 1
-                        self.possessionlens.append(time_elapsed)
+                        self.gametime += time_elapsed
                         
                     case "defense":
                         # if defensive rebound
@@ -132,13 +142,12 @@ class Match:
             elif "turnover" in shot[0]:
                 # if turnover, switch which team has possesion and end the possession
                 break
-
+        
+        self.quartertime -= time_elapsed
         self.gametime += time_elapsed
         self.switchPos()
         self.totalpossessions += 1
-        self.possessionlens.append(time_elapsed)
 
-        
         return
         
 
@@ -335,10 +344,10 @@ class Match:
             else:
                 pace = "giveUp"
         elif diff <= -3:
-            if self.gametime < 2790:
+            if self.gametime > 2790:
                 pace = "needThree"
             else:
-                pace = "scoreFast"
+                pace = "scoreNormal"
         elif diff < 0:
             if self.gametime < 2790:
                 pace = "scoreNormal"
@@ -349,7 +358,7 @@ class Match:
         elif diff > 0 and diff < 10:
             pace = "scoreSlow"
         else:
-            if self.gametime < 2820:
+            if self.gametime >= 2820:
                 pace = "giveUp"
             else:
                 pace = "scoreSlow"
@@ -429,11 +438,16 @@ class Match:
         return False
 
 
-
     def getTimeSpent(self, goal, shotclock):
         '''
         takes in goal and returns time elapsed during play (up until shot taken) - depends on play and pace
         '''
+
+        # catch final second shots up here:
+        if shotclock <= 3:
+            return shotclock
+
+
         match goal["play"]:
 
             case "iso":
@@ -442,22 +456,21 @@ class Match:
 
                     case "scoreNormal":
 
-                        timeSpent = rand.triangular(0, shotclock, ((1/2) * shotclock))
+                        timeSpent = rand.triangular(6, shotclock, ((1/2) * shotclock))
                         return timeSpent
                     
                     case "scoreFast":
 
-                        timeSpent = rand.triangular(0, shotclock, ((1/4) * shotclock))
+                        timeSpent = rand.triangular(4, shotclock, ((1.5/4) * shotclock))
                         return timeSpent
                     
                     case "scoreSlow":
 
-                        timeSpent = rand.triangular(0, shotclock, ((3/4) * shotclock))
+                        timeSpent = rand.triangular(7, shotclock, ((3/4) * shotclock))
                         return timeSpent
                     
                     case "needThree":
-
-                        timeSpent = rand.triangular(0, shotclock, ((1/5) * shotclock))
+                        timeSpent = rand.triangular(0, shotclock, ((1/4) * shotclock))
                         return timeSpent
 
             case "play":
@@ -466,25 +479,30 @@ class Match:
 
                     case "scoreNormal":
 
-                        timeSpent = rand.triangular(0, shotclock, ((2/3) * shotclock))
+                        timeSpent = rand.triangular(6.5, shotclock, ((2/3) * shotclock))
                         return timeSpent
                     
                     case "scoreFast":
 
-                        timeSpent = rand.triangular(0, shotclock, ((1/3) * shotclock))
+                        timeSpent = rand.triangular(5, shotclock, ((1.2/3) * shotclock))
                         return timeSpent
                     
                     case "scoreSlow":
 
-                        timeSpent = rand.triangular(0, shotclock, ((3/4) * shotclock))
+                        timeSpent = rand.triangular(7.5, shotclock, ((3/4) * shotclock))
                         return timeSpent
                     
                     case "needThree":
-
-                        timeSpent = rand.triangular(0, shotclock, ((1/4) * shotclock))
+                        timeSpent = rand.triangular(0, shotclock, ((1.2/4) * shotclock))
                         return timeSpent
 
-    
+    def showStats(self):
+
+            for player in self.lineups["t1"]:
+                print(f"{player.data.get('Name')}: {player.points} points, {player.threes} threes")
+            for player in self.lineups["t2"]:
+                print(f"{player.data.get('Name')}: {player.points} points, {player.threes} threes")
+        
 
 
 
