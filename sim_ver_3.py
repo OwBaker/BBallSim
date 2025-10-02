@@ -71,6 +71,8 @@ class Match:
         print(f"{self.totalpossessions} Possessions")
         self.showStats()
 
+
+
     def simPossession(self):
 
         off_lineup = self.lineups[self.haspossession]
@@ -724,23 +726,23 @@ def dict_to_team(dct):
     return teamobj
 
 # controls everything
-def main():
+# def main():
 
-    teamdict = load_teams("testteams.json")
-    mice = dict_to_team(teamdict["Knicks"])
-    snakes = dict_to_team(teamdict["Cavs"])
+#     teamdict = load_teams("testteams.json")
+#     mice = dict_to_team(teamdict["Knicks"])
+#     snakes = dict_to_team(teamdict["Cavs"])
 
-    while True:
-        sim = input("press enter to sim a match")
-        if sim == "":
-            game = Match(mice, snakes)
-            game.play()
-        else:
-            break
+#     while True:
+#         sim = input("press enter to sim a match")
+#         if sim == "":
+#             game = Match(mice, snakes)
+#             game.play()
+#         else:
+#             break
 
-    #save_teams([mice, snakes])
+#     #save_teams([mice, snakes])
 
-main()
+# main()
 
 #def testGetBestShooters():
 
