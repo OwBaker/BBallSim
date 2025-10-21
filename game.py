@@ -3,6 +3,8 @@ import pygame
 import sim_ver_3 as gamesim
 from buttons import ImageButton, TextButton
 
+global_font = "Raster Forge Regular"
+
 def main_menu():
     pygame.display.set_caption("Main Menu") # set menu caption
 
@@ -11,10 +13,16 @@ def main_menu():
         screen.fill("white")
         mouse_pos = pygame.mouse.get_pos()
 
+        # put logo on screen
+        logo = pygame.image.load("assets/Dream Leagues Large Logo.png")
+        logo = pygame.transform.scale_by(logo, 720 / screen_y)
+        logo_rect = logo.get_rect(x=screen.get_width() / 85, y=screen.get_height() / 5)
+        screen.blit(logo, logo_rect)
+
         # create gui elements
-        single_sim = TextButton(screen.get_width() / 25, screen.get_height() / 2, "Single Sim", int(70 * screen.get_height() / 720),
-                                centered=False)
-        exit = TextButton(single_sim.x, single_sim.y * 1.2, "Exit", int(70 * screen.get_height() / 720), centered=False)
+        single_sim = TextButton(screen.get_width() / 25, screen.get_height() / 2, "Single Sim", int(45 * screen.get_height() / 720),
+                                centered=False, font=global_font)
+        exit = TextButton(single_sim.x, single_sim.y * 1.2, "Exit", int(45 * screen.get_height() / 720), centered=False, font=global_font)
 
         buttons = [single_sim, exit]
 
@@ -73,8 +81,8 @@ def single_sim_menu():
                           screeny / 720, screeny / 720, centered=True)
     cycle_l.rotate_img(180)
     cycle_l.scale_img(0.15)
-    select = TextButton(main_rect.centerx, main_rect.centery, "Select", 80, text_color="green")
-    sim_button = TextButton(main_rect.centerx, main_rect.centery, "Sim", 80, text_color="green")
+    select = TextButton(main_rect.centerx, main_rect.centery, "Select", int(55 * (screeny / 720)), text_color="orange", font=global_font)
+    sim_button = TextButton(main_rect.centerx, main_rect.centery, "Sim", int(55 * (screeny / 720)), text_color="orange", font=global_font)
     exit = ImageButton("assets/arrow.png", main_rect.left / 2, main_rect.bottom,
                           screeny / 720, screeny / 720, centered=True)
     exit.rotate_img(180)
@@ -88,7 +96,7 @@ def single_sim_menu():
         mouse_pos = pygame.mouse.get_pos()
 
         # ui that changes
-        current_team_font = pygame.font.Font(size=int(70 * screeny / 720))
+        current_team_font = pygame.font.SysFont(name=global_font, size=int(45 * screeny / 720))
         current_team = team_lst[team_index]
         current_team_render = current_team_font.render(text=current_team, antialias=False, color="black")
         current_team_text_rect = current_team_render.get_rect()
@@ -96,10 +104,10 @@ def single_sim_menu():
 
         
         # render ui
-        pygame.draw.rect(screen, "black", main_rect, width=5)
-        pygame.draw.rect(screen, "black", team_one_rect, width=5)
-        pygame.draw.rect(screen, "black", team_two_rect, width=5)
-        pygame.draw.rect(screen, "black", current_team_rect, width=5)
+        pygame.draw.rect(screen, "black", main_rect, width=5, border_radius=2)
+        pygame.draw.rect(screen, "black", team_one_rect, width=5, border_radius=2)
+        pygame.draw.rect(screen, "black", team_two_rect, width=5, border_radius=2)
+        pygame.draw.rect(screen, "black", current_team_rect, width=5, border_radius=2)
 
         current_team_img = pygame.transform.scale_by(team_dict[current_team], factor= (screeny / 720))
         screen.blit(current_team_render, current_team_text_rect)
@@ -147,7 +155,7 @@ def single_sim_menu():
                         team_two = current_team
             else:
                 if event.type == pygame.MOUSEBUTTONDOWN and sim_button.rect.collidepoint(mouse_pos):
-                    sim((team_one, team_one_img), (team_two, team_two_img))
+                    sim_screen((team_one, team_one_img), (team_two, team_two_img))
                     running = False
         
         if running is False:
@@ -174,7 +182,7 @@ def cycle_list(lst, index, dir):
             else:
                 return index - 1
 
-def sim(team_one_vals, team_two_vals):
+def sim_screen(team_one_vals, team_two_vals):
     pygame.display.set_caption("Sim Menu") # set menu caption
 
     screenx = screen.get_width()
@@ -191,11 +199,18 @@ def sim(team_one_vals, team_two_vals):
     main_rect = pygame.rect.Rect((0, 0), (team_two_rect.right - team_one_rect.left, 300 * screeny / 720))
     main_rect.center = (screenx / 2, screeny * 5.3 / 7)
 
+    # make a table to display player data
+    eighth_rect = pygame.rect.Rect((main_rect.left, main_rect.top), (main_rect.width / 8, main_rect.height))
+
     # create buttons
     exit = ImageButton("assets/arrow.png", main_rect.left / 2, main_rect.bottom,
                           screeny / 720, screeny / 720, centered=True)
     exit.rotate_img(180)
     exit.scale_img(0.15)
+
+    dash = pygame.font.Font(size=int(100 * screeny / 720))
+    dash_render = dash.render("-", antialias=False, color="black")
+    dash_rect = dash_render.get_rect(centerx = screenx / 2, centery=team_one_rect.centery)
 
     # run actual sim and get final scores
     team_dict = gamesim.load_teams("gamedata/testteams.json")
@@ -211,24 +226,36 @@ def sim(team_one_vals, team_two_vals):
         mouse_pos = pygame.mouse.get_pos()
 
         # ui that changes
-        team_one_score = pygame.font.Font(size=int(100 * screeny / 720))
+        team_one_score = pygame.font.SysFont(name=global_font, size=int(75 * screeny / 720))
         team_one_score_render = team_one_score.render(f"{game.scores["t1"]}", antialias=False, color="black")
         team_one_score_rect = team_one_score_render.get_rect(left=(team_one_rect.right + 30),
                                                              centery=team_one_rect.centery)
 
-        team_two_score = pygame.font.Font(size=int(100 * screeny / 720))
+        team_two_score = pygame.font.SysFont(name=global_font, size=int(75 * screeny / 720))
         team_two_score_render = team_two_score.render(f"{game.scores["t2"]}", antialias=False, color="black")
         team_two_score_rect = team_two_score_render.get_rect(right=(team_two_rect.left - 30),
                                                              centery=team_one_rect.centery)
+        
 
         # render ui
-        pygame.draw.rect(screen, "black", main_rect, width=5)
-        pygame.draw.rect(screen, "black", team_one_rect, width=5)
-        pygame.draw.rect(screen, "black", team_two_rect, width=5)
+        pygame.draw.rect(screen, "black", main_rect, width=5, border_radius=2)
+        pygame.draw.rect(screen, "black", team_one_rect, width=5, border_radius=2)
+        pygame.draw.rect(screen, "black", team_two_rect, width=5, border_radius=2)
         screen.blit(team_one_score_render, team_one_score_rect)
         screen.blit(team_two_score_render, team_two_score_rect)
         screen.blit(team_one_vals[1], (team_one_rect.x + 5, team_one_rect.y + 5))
         screen.blit(team_two_vals[1], (team_two_rect.x + 5, team_two_rect.y + 5))
+        screen.blit(dash_render, dash_rect)
+
+        
+        for x in range(7):
+            pygame.draw.line(screen, "black", (main_rect.left + ((x + 1) * main_rect.width / 5), main_rect.top),
+                             (main_rect.left + ((x + 1 )* main_rect.width / 5), main_rect.bottom), 5)
+        for x in range(4):
+            pygame.draw.line(screen, "black", (main_rect.left, (main_rect.top + ((x + 1) * (main_rect.height / 5)))),
+                             (main_rect.right, (main_rect.top + ((x + 1) * (main_rect.height / 5)))), 5)
+            
+        
 
         # render buttons
         exit.render_button(screen)

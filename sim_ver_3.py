@@ -540,7 +540,13 @@ class Player:
         self.lays = 0
         self.shottot = 0
         self.shotsmade = 0
-        self.fgper = 0
+        
+    @property
+    def fgper(self):
+        
+        fgper = self.shotsmade / self.shottot
+        return fgper
+
 
     def logShot(self, outcome):
         '''

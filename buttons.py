@@ -64,7 +64,7 @@ class TextButton:
         
         self.x = x_cord
         self.y = y_cord
-        self.font_obj = pygame.font.Font(font, size)
+        self.font_obj = pygame.font.SysFont(font, size)
         self.text_render = self.font_obj.render(text, False, text_color)
 
         if centered is True:
