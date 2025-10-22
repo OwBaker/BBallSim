@@ -95,7 +95,7 @@ class Match:
 
             # choose player ()
             shooter = self.choosePlayer(goal, off_lineup)
-            matchup = def_lineup[shooter.index ] # temporarily set defender to corresponding index on other team
+            matchup = def_lineup[shooter.index] # temporarily set defender to corresponding index on other team
 
             # run attempt
             shot = self.shootIt(shooter, matchup, goal, shotclock) # todo: tweak time spent calculations to shave off ~50 possessions
@@ -540,11 +540,23 @@ class Player:
         self.lays = 0
         self.shottot = 0
         self.shotsmade = 0
-        
+    
+    @property
+    def game_stats(self):
+        stat_dict = {
+            "name": self.data.get("Name").split(" ")[-1],
+            "pts": self.points,
+            "ast": 0,
+            "threes": self.threes,
+            "fg%": self.fgper
+        }
+
+        return stat_dict
+
     @property
     def fgper(self):
         
-        fgper = self.shotsmade / self.shottot
+        fgper = round((self.shotsmade / self.shottot) * 100, 1)
         return fgper
 
 
@@ -559,6 +571,7 @@ class Player:
                 self.threes += 1
                 self.shottot += 1
                 self.points += 3
+                self.shotsmade += 1
 
             case "threemissed":
                 self.shottot += 1
@@ -567,13 +580,15 @@ class Player:
                 self.mids += 1
                 self.shottot += 1
                 self.points += 2
+                self.shotsmade += 1
 
             case "midmissed":
                 self.shottot += 1
-
+                
             case "laymade":
                 self.lays += 1
                 self.shottot += 1
+                self.shotsmade += 1
                 self.points += 2
 
             case "laymissed":

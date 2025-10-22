@@ -16,7 +16,7 @@ def main_menu():
         # put logo on screen
         logo = pygame.image.load("assets/Dream Leagues Large Logo.png")
         logo = pygame.transform.scale_by(logo, 720 / screen_y)
-        logo_rect = logo.get_rect(x=screen.get_width() / 85, y=screen.get_height() / 5)
+        logo_rect = logo.get_rect(x=screen.get_width() / 85, y=screen.get_height() / 6)
         screen.blit(logo, logo_rect)
 
         # create gui elements
@@ -182,6 +182,19 @@ def cycle_list(lst, index, dir):
             else:
                 return index - 1
 
+def render_stat_column(stat, player_list, x_cord, y_cord, diff, max_w):
+
+    factor = 0
+    for player in player_list:
+        stat_font = pygame.font.SysFont(global_font, 50)
+        stat_render = stat_font.render(str(player.game_stats[stat]), False, "black")
+        stat_rect = stat_render.get_rect(center=((x_cord), (y_cord + (factor * diff))))
+        if stat_rect.width > (max_w - 5):
+            stat_rect.width = max_w - 5
+        screen.blit(stat_render, stat_rect)
+        factor += 1
+    
+
 def sim_screen(team_one_vals, team_two_vals):
     pygame.display.set_caption("Sim Menu") # set menu caption
 
@@ -198,9 +211,6 @@ def sim_screen(team_one_vals, team_two_vals):
 
     main_rect = pygame.rect.Rect((0, 0), (team_two_rect.right - team_one_rect.left, 300 * screeny / 720))
     main_rect.center = (screenx / 2, screeny * 5.3 / 7)
-
-    # make a table to display player data
-    eighth_rect = pygame.rect.Rect((main_rect.left, main_rect.top), (main_rect.width / 8, main_rect.height))
 
     # create buttons
     exit = ImageButton("assets/arrow.png", main_rect.left / 2, main_rect.bottom,
@@ -226,12 +236,12 @@ def sim_screen(team_one_vals, team_two_vals):
         mouse_pos = pygame.mouse.get_pos()
 
         # ui that changes
-        team_one_score = pygame.font.SysFont(name=global_font, size=int(75 * screeny / 720))
+        team_one_score = pygame.font.SysFont(name=global_font, size=int(60 * screeny / 720))
         team_one_score_render = team_one_score.render(f"{game.scores["t1"]}", antialias=False, color="black")
         team_one_score_rect = team_one_score_render.get_rect(left=(team_one_rect.right + 30),
                                                              centery=team_one_rect.centery)
 
-        team_two_score = pygame.font.SysFont(name=global_font, size=int(75 * screeny / 720))
+        team_two_score = pygame.font.SysFont(name=global_font, size=int(60 * screeny / 720))
         team_two_score_render = team_two_score.render(f"{game.scores["t2"]}", antialias=False, color="black")
         team_two_score_rect = team_two_score_render.get_rect(right=(team_two_rect.left - 30),
                                                              centery=team_one_rect.centery)
@@ -255,7 +265,54 @@ def sim_screen(team_one_vals, team_two_vals):
             pygame.draw.line(screen, "black", (main_rect.left, (main_rect.top + ((x + 1) * (main_rect.height / 5)))),
                              (main_rect.right, (main_rect.top + ((x + 1) * (main_rect.height / 5)))), 5)
             
+         # insert columns into table
+        player_font = pygame.font.SysFont(global_font, 50)
+        player_font_render = player_font.render("Player", False, "orange")
+        player_font_rect = player_font_render.get_rect(center=(main_rect.left + (main_rect.width / 5) / 2,
+                                                               main_rect.top + (main_rect.height / 5) / 2))
+        pts_font = pygame.font.SysFont(global_font, 50)
+        pts_font_render = pts_font.render("PTS", False, "orange")
+        pts_font_rect = pts_font_render.get_rect(center=((main_rect.left + (3 * main_rect.width / 5) / 2) ,
+                                                               main_rect.top + (main_rect.height / 5) / 2))
         
+        ast_font = pygame.font.SysFont(global_font, 50)
+        ast_font_render = ast_font.render("AST", False, "orange")
+        ast_font_rect = ast_font_render.get_rect(center=((main_rect.left + (5 * main_rect.width / 5) / 2) ,
+                                                               main_rect.top + (main_rect.height / 5) / 2))
+        
+        three_font = pygame.font.SysFont(global_font, 50)
+        three_font_render = three_font.render("3PM", False, "orange")
+        three_font_rect = three_font_render.get_rect(center=((main_rect.left + (7 * main_rect.width / 5) / 2) ,
+                                                               main_rect.top + (main_rect.height / 5) / 2))
+        
+        fg_font = pygame.font.SysFont(global_font, 50)
+        fg_font_render = fg_font.render("FG%", False, "orange")
+        fg_font_rect = fg_font_render.get_rect(center=((main_rect.left + (9 * main_rect.width / 5) / 2) ,
+                                                               main_rect.top + (main_rect.height / 5) / 2))
+
+        team_one_players = game.lineups["t1"][:4]
+        render_stat_column("name", team_one_players, main_rect.left + (main_rect.width / 5) / 2,
+                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
+                           main_rect.width / 5)
+        render_stat_column("pts", team_one_players, main_rect.left + (3 * main_rect.width / 5) / 2,
+                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
+                           main_rect.width / 5)
+        render_stat_column("ast", team_one_players, main_rect.left + (5 * main_rect.width / 5) / 2,
+                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
+                           main_rect.width / 5)
+        render_stat_column("threes", team_one_players, main_rect.left + (7 * main_rect.width / 5) / 2,
+                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
+                           main_rect.width / 5)
+        render_stat_column("fg%", team_one_players, main_rect.left + (9 * main_rect.width / 5) / 2,
+                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
+                           main_rect.width / 5)
+        
+        # render table values
+        screen.blit(player_font_render, player_font_rect)
+        screen.blit(pts_font_render, pts_font_rect)
+        screen.blit(ast_font_render, ast_font_rect)
+        screen.blit(three_font_render, three_font_rect)
+        screen.blit(fg_font_render, fg_font_rect)
 
         # render buttons
         exit.render_button(screen)
@@ -273,6 +330,7 @@ def sim_screen(team_one_vals, team_two_vals):
 
         pygame.display.flip()
 
+    
 
 pygame.init()
 screen_x = 2256
