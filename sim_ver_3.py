@@ -26,9 +26,10 @@ class Team:
     def __init__(self, name):
         self.name = name
         self.players = gen_players(0)
+        self.roster = []
         self.wins = 0
         self.losses = 0
-        self.avgpts = 0.0
+        self.avgpts = 0.0   
         self.gamescores = []
 
 
@@ -36,10 +37,13 @@ class Team:
 class Match:
 
     def __init__(self, t1, t2):
+        t1.roster = rosterize(t1.players, "t1")
+        t2.roster = rosterize(t2.players, "t2")
+
         self.teams = {"t1": t1,
                        "t2": t2}
-        self.lineups = {"t1": rosterize(t1.players, "t1"),
-                       "t2": rosterize(t2.players, "t2")}
+        self.lineups = {"t1": t1.roster[:5],
+                       "t2": t2.roster[:5]}
         self.scores = {"t1": 0,
                        "t2": 0}
         
@@ -56,6 +60,7 @@ class Match:
         self.passes = 0
         self.violations = 0
 
+
     def play(self):
 
         # sim possessions til game ends
@@ -70,13 +75,19 @@ class Match:
         print(f"{self.teams["t1"].name} Score: {self.scores["t1"]}\n {self.teams["t2"].name} Score: {self.scores["t2"]}")
         print(f"{self.totalpossessions} Possessions")
         self.showStats()
+        self.showMatchups()
 
+    def showMatchups(self):
 
+        for player in self.lineups["t1"] + self.lineups["t2"]:
+            print(player.data.get("Name"), player.matchup)
 
     def simPossession(self):
 
         off_lineup = self.lineups[self.haspossession]
         def_lineup = self.lineups[self.defending]
+
+        self.decideMatchups(off_lineup, def_lineup)
         
         if self.quartertime < 24:
             shotclock = self.quartertime
@@ -95,11 +106,10 @@ class Match:
 
             # choose player ()
             shooter = self.choosePlayer(goal, off_lineup)
-            matchup = def_lineup[shooter.index] # temporarily set defender to corresponding index on other team
+            matchup = shooter.matchup
 
             # run attempt
             shot = self.shootIt(shooter, matchup, goal, shotclock) # todo: tweak time spent calculations to shave off ~50 possessions
-            print(shot)
 
             # if score, add to point totals and other stats
             time_elapsed = shot[1]
@@ -151,7 +161,51 @@ class Match:
         self.totalpossessions += 1
 
         return
+    
+    def getMatchup(self, player, opp_lineup, strength):
+        '''
+        accepts a player and opposing lineup, and returns their best defensive matchup
+        '''
         
+        # get player strengths
+        #strength = self.getOffTalents(player)
+
+        opp_lineup = list(opp_lineup)
+
+        # find defender that can best address those strengths
+        match strength:
+            case "ThreeShot" | "MidShot":
+                golden_boy = self.getBestAttribute("PerDef", 1, opp_lineup)[0]
+            case default:
+                golden_boy = self.getBestAttribute("PaintDef", 1, opp_lineup)[0]
+
+        return golden_boy
+
+    def decideMatchups(self, off_lineup, def_lineup):
+        
+        '''
+        decides the defensive matchup for each player on the floor
+        '''
+
+        off_shoot_rankings = sorted(off_lineup, key=lambda player: player.threeshot, reverse=True)
+        def_set = set(def_lineup)
+
+        for player in off_shoot_rankings:
+            matchup = self.getMatchup(player, def_set, "ThreeShot")
+            def_set.remove(matchup)
+            player.matchup = matchup
+
+    
+    def getOffTalents(self, player):
+        '''
+        gets a player's best offensive attribute
+        '''
+        off_data = {k: v for k, v in player.data.items() if k == "ThreeShot" or k == "MidShot" or k == "LayShot"}
+        reverse_data = {v: k for k, v in off_data.items()}
+
+        best_att = reverse_data[max(reverse_data.keys())]
+
+        return best_att
 
     def switchPos(self):
         '''
@@ -289,9 +343,92 @@ class Match:
         
         return best_isos
         
+    def getBestAttribute(self, attr, num, lineup):
+        '''
+        takes a given attribute, lineup, and number, and returns the given number of players with the best of the given attribute
+        '''
+        attr = attr.lower()
 
-        
+        onfloor = lineup.copy()
+        best_players = []
 
+        for x in range(num):
+            best_player = onfloor[0]
+            for i in range(len(onfloor)):
+                index = i
+                match attr:
+                    case "three":
+                        if onfloor[i].threeshot > best_player.threeshot:
+                            best_player = onfloor[i]
+                            index = i
+                        elif onfloor[i].threeshot == best_player.threeshot:
+                            coin = rand.randint(0, 1)
+                            match coin:
+                                case 1:
+                                    best_player = onfloor[i]
+                                   # index = i
+                                case 0:
+                                    pass
+                    case "mid":
+                        if onfloor[i].midshot > best_player.midshot:
+                            best_player = onfloor[i]
+                            index = i
+                        elif onfloor[i].midshot == best_player.midshot:
+                            coin = rand.randint(0, 1)
+                            match coin:
+                                case 1:
+                                    best_player = onfloor[i]
+                                   # index = i
+                                case 0:
+                                  #  index = i
+                                  pass
+                    case "lay":
+                        if onfloor[i].layshot > best_player.layshot:
+                            best_player = onfloor[i]
+                            index = i
+                        elif onfloor[i].layshot == best_player.layshot:
+                            coin = rand.randint(0, 1)
+                            match coin:
+                                case 1:
+                                    best_player = onfloor[i]
+                                   # index = i
+                                case 0:
+                                   # index = i
+                                    pass
+                    case "perdef":
+                        if onfloor[i].perdef > best_player.perdef:
+                            best_player = onfloor[i]
+                            index = i
+                        elif onfloor[i].perdef == best_player.perdef:
+                            coin = rand.randint(0, 1)
+                            match coin:
+                                case 1:
+                                    best_player = onfloor[i]
+                                  #  index = i
+                                case 0:
+                                    #index = i
+                                    pass
+                    case "paintdef":
+                        if onfloor[i].paintdef > best_player.paintdef:
+                            best_player = onfloor[i]
+                            index = i
+                        elif onfloor[i].paintdef == best_player.paintdef:
+                            coin = rand.randint(0, 1)
+                            match coin:
+                                case 1:
+                                    best_player = onfloor[i]
+                                   # index = i
+                                case 0:
+                                   # index = i    
+                                   pass
+                    case default:
+                        raise ValueError(f"No attribute provided, recevied {default} instead")
+                    
+            best_players.append(best_player)
+            onfloor.pop(index)
+
+        return best_players
+            
     def chooseGoal(self, teampos):
         '''
         takes in team position and returns a dictionary with "shot" shottype, "play" playtype, and "pace" pace
@@ -534,6 +671,7 @@ class Player:
         
         
         self.loc = "outside"
+        self.matchup = None
         self.points = 0
         self.threes = 0
         self.mids = 0
@@ -544,7 +682,7 @@ class Player:
     @property
     def game_stats(self):
         stat_dict = {
-            "name": self.data.get("Name").split(" ")[-1],
+            "name": self.data.get("Name")[0] + self.data.get("Name").split(" ")[-1],
             "pts": self.points,
             "ast": 0,
             "threes": self.threes,
@@ -558,6 +696,20 @@ class Player:
         
         fgper = round((self.shotsmade / self.shottot) * 100, 1)
         return fgper
+    
+    def __hash__(self) -> int:
+
+        val = sum([self.ballhandle, self.layodds, self.shotodds, self.midshot, self.layshot, self.threeshot])
+        return val
+    
+    def __eq__(self, other: object) -> bool:
+        
+        if not isinstance(other, Player):
+            raise ValueError
+
+        if other.data == self.data:
+            return True
+        return False
 
 
     def logShot(self, outcome):
@@ -594,6 +746,10 @@ class Player:
             case "laymissed":
                 self.shottot += 1
         return
+    
+    def __str__(self):
+
+        return self.data.get("Name")
 
 def flip(*args):
         '''
@@ -628,21 +784,22 @@ def flip(*args):
 
 
 # takes in a dictionary of players, and spits out a list of player objects containing the player data - used in match simulation
-def rosterize(playersdict, team, mode='start'): 
+def rosterize(playersdict, team): 
 
     # for now, this function has hard coded modes just to divide up starting and bench lineup
     playerlist = []
 
-    if mode == 'start':
-        for i in range(5):
-            playerdata = {key: value[i] for (key, value) in zip(playersdict.keys(), playersdict.values())}
-            playerobj = Player(playerdata, i, team)
-            playerlist.append(playerobj)
-    elif mode == "bench":
-        for i in range(5, 10):
-            playerdata = {key: value[i] for (key, value) in zip(playersdict.keys(), playersdict.values())}
-            playerobj = Player(playerdata, (i - 5), team)
-            playerlist.append(playerobj)
+    
+    for i in range(len(playersdict["PlayerID"])):
+        playerdata = {key: value[i] for (key, value) in zip(playersdict.keys(), playersdict.values())}
+        playerobj = Player(playerdata, i, team)
+        playerlist.append(playerobj)
+    
+    # elif mode == "bench":
+    #     for i in range(5, 10):
+    #         playerdata = {key: value[i] for (key, value) in zip(playersdict.keys(), playersdict.values())}
+    #         playerobj = Player(playerdata, (i - 5), team)
+    #         playerlist.append(playerobj)
 
     return playerlist
 

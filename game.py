@@ -115,12 +115,13 @@ def single_sim_menu():
         
 
         if team_one is None:
+            team_one_img = None
             pass
         else:
             team_one_img = pygame.transform.scale_by(team_dict[team_one], factor= (screeny / 720))
             screen.blit(team_one_img, (team_one_rect.x + 5, team_one_rect.y + 5))
         if team_two is None:
-            pass
+            team_two_img = None
         else:
             team_two_img = pygame.transform.scale_by(team_dict[team_two], factor= (screeny / 720))
             screen.blit(team_two_img, (team_two_rect.x + 5, team_two_rect.y + 5))
@@ -155,7 +156,10 @@ def single_sim_menu():
                         team_two = current_team
             else:
                 if event.type == pygame.MOUSEBUTTONDOWN and sim_button.rect.collidepoint(mouse_pos):
-                    sim_screen((team_one, team_one_img), (team_two, team_two_img))
+                    sim_screen((team_one, team_one_img), (team_two, team_two_img),
+                               (current_team_rect.right, current_team_rect.bottom + ((main_rect.top - current_team_rect.bottom) / 2)),
+                               (current_team_rect.left, current_team_rect.bottom + ((main_rect.top - current_team_rect.bottom) / 2)),
+                               (screenx / 2, current_team_rect.bottom * 1.1))
                     running = False
         
         if running is False:
@@ -189,18 +193,25 @@ def render_stat_column(stat, player_list, x_cord, y_cord, diff, max_w):
         stat_font = pygame.font.SysFont(global_font, 50)
         stat_render = stat_font.render(str(player.game_stats[stat]), False, "black")
         stat_rect = stat_render.get_rect(center=((x_cord), (y_cord + (factor * diff))))
-        if stat_rect.width > (max_w - 5):
-            stat_rect.width = max_w - 5
+        amt = 1
+        while stat_rect.width > (max_w - 10):
+            stat_font = pygame.font.SysFont(global_font, 50 - amt)
+            stat_render = stat_font.render(str(player.game_stats[stat]), False, "black")
+            stat_rect = stat_render.get_rect(center=((x_cord), (y_cord + (factor * diff))))
+            amt += 1
         screen.blit(stat_render, stat_rect)
         factor += 1
     
 
-def sim_screen(team_one_vals, team_two_vals):
+def sim_screen(team_one_vals, team_two_vals, right_button_cords, left_button_cords, team_label_cords):
     pygame.display.set_caption("Sim Menu") # set menu caption
 
     screenx = screen.get_width()
     screeny = screen.get_height()
     
+    team_list = [team_one_vals[0], team_two_vals[0]]
+    team_index = 0
+
     # create ui elements:
 
     # ui for selected teams
@@ -213,6 +224,15 @@ def sim_screen(team_one_vals, team_two_vals):
     main_rect.center = (screenx / 2, screeny * 5.3 / 7)
 
     # create buttons
+    cycle_r = ImageButton("assets/arrow.png", right_button_cords[0], 
+                          right_button_cords[1],
+                          screeny / 720, screeny / 720, centered=True)
+    cycle_r.scale_img(0.15)
+    cycle_l = ImageButton("assets/arrow.png", left_button_cords[0],
+                          left_button_cords[1],
+                          screeny / 720, screeny / 720, centered=True)
+    cycle_l.rotate_img(180)
+    cycle_l.scale_img(0.15)
     exit = ImageButton("assets/arrow.png", main_rect.left / 2, main_rect.bottom,
                           screeny / 720, screeny / 720, centered=True)
     exit.rotate_img(180)
@@ -256,16 +276,22 @@ def sim_screen(team_one_vals, team_two_vals):
         screen.blit(team_one_vals[1], (team_one_rect.x + 5, team_one_rect.y + 5))
         screen.blit(team_two_vals[1], (team_two_rect.x + 5, team_two_rect.y + 5))
         screen.blit(dash_render, dash_rect)
-
         
-        for x in range(7):
+        current_team_font = pygame.font.SysFont(name=global_font, size=int(45 * screeny / 720))
+        current_team = team_list[team_index]
+        current_team_render = current_team_font.render(text=current_team, antialias=False, color="black")
+        current_team_text_rect = current_team_render.get_rect()
+        current_team_text_rect.center = team_label_cords
+        screen.blit(current_team_render, current_team_text_rect)
+        
+        for x in range(4):
             pygame.draw.line(screen, "black", (main_rect.left + ((x + 1) * main_rect.width / 5), main_rect.top),
                              (main_rect.left + ((x + 1 )* main_rect.width / 5), main_rect.bottom), 5)
-        for x in range(4):
+
             pygame.draw.line(screen, "black", (main_rect.left, (main_rect.top + ((x + 1) * (main_rect.height / 5)))),
                              (main_rect.right, (main_rect.top + ((x + 1) * (main_rect.height / 5)))), 5)
             
-         # insert columns into table
+        # insert columns into table
         player_font = pygame.font.SysFont(global_font, 50)
         player_font_render = player_font.render("Player", False, "orange")
         player_font_rect = player_font_render.get_rect(center=(main_rect.left + (main_rect.width / 5) / 2,
@@ -291,21 +317,11 @@ def sim_screen(team_one_vals, team_two_vals):
                                                                main_rect.top + (main_rect.height / 5) / 2))
 
         team_one_players = game.lineups["t1"][:4]
-        render_stat_column("name", team_one_players, main_rect.left + (main_rect.width / 5) / 2,
-                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
-                           main_rect.width / 5)
-        render_stat_column("pts", team_one_players, main_rect.left + (3 * main_rect.width / 5) / 2,
-                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
-                           main_rect.width / 5)
-        render_stat_column("ast", team_one_players, main_rect.left + (5 * main_rect.width / 5) / 2,
-                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
-                           main_rect.width / 5)
-        render_stat_column("threes", team_one_players, main_rect.left + (7 * main_rect.width / 5) / 2,
-                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
-                           main_rect.width / 5)
-        render_stat_column("fg%", team_one_players, main_rect.left + (9 * main_rect.width / 5) / 2,
-                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
-                           main_rect.width / 5)
+        team_two_players = game.lineups["t2"][:4]
+        if team_index == 0:
+            render_table_values(team_one_players, main_rect)
+        elif team_index == 1:
+            render_table_values(team_two_players, main_rect)
         
         # render table values
         screen.blit(player_font_render, player_font_rect)
@@ -315,11 +331,17 @@ def sim_screen(team_one_vals, team_two_vals):
         screen.blit(fg_font_render, fg_font_rect)
 
         # render buttons
+        cycle_r.render_button(screen)
+        cycle_l.render_button(screen)
         exit.render_button(screen)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN and cycle_r.rect.collidepoint(mouse_pos):
+                team_index = cycle_list(team_list, team_index, "forward") # cycles index up by one
+            elif event.type == pygame.MOUSEBUTTONDOWN and cycle_l.rect.collidepoint(mouse_pos):
+                team_index = cycle_list(team_list, team_index, "backward") # cycles index down by one
             elif event.type == pygame.MOUSEBUTTONDOWN and exit.rect.collidepoint(mouse_pos):
                 running = False
             
@@ -330,6 +352,23 @@ def sim_screen(team_one_vals, team_two_vals):
 
         pygame.display.flip()
 
+def render_table_values(players, main_rect):
+
+    render_stat_column("name", players, main_rect.left + (main_rect.width / 5) / 2,
+                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
+                           main_rect.width / 5)
+    render_stat_column("pts", players, main_rect.left + (3 * main_rect.width / 5) / 2,
+                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
+                           main_rect.width / 5)
+    render_stat_column("ast", players, main_rect.left + (5 * main_rect.width / 5) / 2,
+                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
+                           main_rect.width / 5)
+    render_stat_column("threes", players, main_rect.left + (7 * main_rect.width / 5) / 2,
+                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
+                           main_rect.width / 5)
+    render_stat_column("fg%", players, main_rect.left + (9 * main_rect.width / 5) / 2,
+                           (main_rect.top + (3 * main_rect.height / 5) / 2), main_rect.height / 5,
+                           main_rect.width / 5)
     
 
 pygame.init()
@@ -338,3 +377,8 @@ screen_y = 1504
 screen = pygame.display.set_mode((screen_x, screen_y), pygame.FULLSCREEN)
 
 main_menu()
+
+# TODO: function documentation
+# TODO: clean up logic and make code more readable
+# TODO: implement pages for stat viewing
+# TODO: implement stat viewing for whole team, not just starting lineup (possibly involves cleaning up the "rosterize" function)
