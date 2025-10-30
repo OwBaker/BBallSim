@@ -212,6 +212,8 @@ def sim_screen(team_one_vals, team_two_vals, right_button_cords, left_button_cor
     team_list = [team_one_vals[0], team_two_vals[0]]
     team_index = 0
 
+    page = 0
+
     # create ui elements:
 
     # ui for selected teams
@@ -233,6 +235,18 @@ def sim_screen(team_one_vals, team_two_vals, right_button_cords, left_button_cor
                           screeny / 720, screeny / 720, centered=True)
     cycle_l.rotate_img(180)
     cycle_l.scale_img(0.15)
+    cycle_u = ImageButton("assets/arrow.png", 0, 
+                          int(main_rect.centery - (main_rect.height / 4)),
+                          screeny / 720, screeny / 720, centered=True)
+    cycle_u.scale_img(0.15)
+    cycle_u.x = int(cycle_u.x + (main_rect.left / 2))
+    cycle_u.rotate_img(90)
+    cycle_d = ImageButton("assets/arrow.png", 0, 
+                          int(main_rect.centery + (main_rect.height / 4)),
+                          screeny / 720, screeny / 720, centered=True)
+    cycle_d.scale_img(0.15)
+    cycle_d.x = int(cycle_d.x + (main_rect.left / 2))
+    cycle_d.rotate_img(-90)
     exit = ImageButton("assets/arrow.png", main_rect.left / 2, main_rect.bottom,
                           screeny / 720, screeny / 720, centered=True)
     exit.rotate_img(180)
@@ -248,6 +262,20 @@ def sim_screen(team_one_vals, team_two_vals, right_button_cords, left_button_cor
     team_two = gamesim.dict_to_team(team_dict[team_two_vals[0]])
     game = gamesim.Match(team_one, team_two)
     game.play()
+
+    rost_size = max([len(game.teams["t1"].roster), len(game.teams["t2"].roster)])
+    page_count = rost_size // 4
+    if rost_size % 4 != 0:
+        page_count += 1
+
+
+    team_one_pages = {}
+    team_two_pages = {}
+    for x in range(0, page_count):
+        slice_one = game.teams["t1"].roster[(x * 4):(x + 1) * 4]
+        slice_two = game.teams["t2"].roster[(x * 4):(x + 1) * 4]
+        team_one_pages[x] = slice_one
+        team_two_pages[x] = slice_two
 
 
     running = True
@@ -315,9 +343,24 @@ def sim_screen(team_one_vals, team_two_vals, right_button_cords, left_button_cor
         fg_font_render = fg_font.render("FG%", False, "orange")
         fg_font_rect = fg_font_render.get_rect(center=((main_rect.left + (9 * main_rect.width / 5) / 2) ,
                                                                main_rect.top + (main_rect.height / 5) / 2))
+        
+        '''
+        need to be able to view the whole team
+        pages contain 4 players
+        pages = rostersize // 4
+        if rostersize % 4:
+            pages += 1
+        start index : start index + 4
+        page must determine start index
+        page# * 4 - 4: page# * 4
 
-        team_one_players = game.lineups["t1"][:4]
-        team_two_players = game.lineups["t2"][:4]
+        '''
+
+        
+
+        team_one_players = team_one_pages[page]
+        team_two_players = team_two_pages[page]
+
         if team_index == 0:
             render_table_values(team_one_players, main_rect)
         elif team_index == 1:
@@ -333,6 +376,8 @@ def sim_screen(team_one_vals, team_two_vals, right_button_cords, left_button_cor
         # render buttons
         cycle_r.render_button(screen)
         cycle_l.render_button(screen)
+        cycle_d.render_button(screen)
+        cycle_u.render_button(screen)
         exit.render_button(screen)
 
         for event in pygame.event.get():
@@ -340,8 +385,14 @@ def sim_screen(team_one_vals, team_two_vals, right_button_cords, left_button_cor
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN and cycle_r.rect.collidepoint(mouse_pos):
                 team_index = cycle_list(team_list, team_index, "forward") # cycles index up by one
+                page = 0
             elif event.type == pygame.MOUSEBUTTONDOWN and cycle_l.rect.collidepoint(mouse_pos):
                 team_index = cycle_list(team_list, team_index, "backward") # cycles index down by one
+                page = 0
+            elif event.type == pygame.MOUSEBUTTONDOWN and cycle_u.rect.collidepoint(mouse_pos):
+                page = cycle_list(range(page_count), page, "backward") # cycles index down by one
+            elif event.type == pygame.MOUSEBUTTONDOWN and cycle_d.rect.collidepoint(mouse_pos):
+                page = cycle_list(range(page_count), page, "forward") # cycles index down by one
             elif event.type == pygame.MOUSEBUTTONDOWN and exit.rect.collidepoint(mouse_pos):
                 running = False
             

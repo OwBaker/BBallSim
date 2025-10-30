@@ -682,7 +682,7 @@ class Player:
     @property
     def game_stats(self):
         stat_dict = {
-            "name": self.data.get("Name")[0] + self.data.get("Name").split(" ")[-1],
+            "name": self.data.get("Name")[0] + ". " + self.data.get("Name").split(" ")[-1],
             "pts": self.points,
             "ast": 0,
             "threes": self.threes,
@@ -694,7 +694,10 @@ class Player:
     @property
     def fgper(self):
         
-        fgper = round((self.shotsmade / self.shottot) * 100, 1)
+        if self.shottot > 0:
+            fgper = round((self.shotsmade / self.shottot) * 100, 1)
+        else:
+            fgper = 0
         return fgper
     
     def __hash__(self) -> int:
@@ -921,24 +924,3 @@ def dict_to_team(dct):
 #     #save_teams([mice, snakes])
 
 # main()
-
-#def testGetBestShooters():
-
-    # teamdict = load_teams("testteams.json")
-    # mice = dict_to_team(teamdict["Knicks"])
-    # snakes = dict_to_team(teamdict["Cavs"])
-
-    # testmatch = Match(mice, snakes)
-
-    # #bestshootas = testmatch.getBestShooters("three", testmatch.lineups["t1"], 1)
-    # #for player in bestshootas:
-    #     #print(player.data)
-    
-    # bestiso = testmatch.getBestIso("mid", testmatch.lineups["t1"])
-    # for player in bestiso:
-    #     print(player.data)
-    # bestiso = testmatch.getBestIso("three", testmatch.lineups["t2"])
-    # for player in bestiso:
-    #     print(player.data)
-
-#testGetBestShooters()  
