@@ -431,5 +431,4 @@ main_menu()
 
 # TODO: function documentation
 # TODO: clean up logic and make code more readable
-# TODO: implement pages for stat viewing
-# TODO: implement stat viewing for whole team, not just starting lineup (possibly involves cleaning up the "rosterize" function)
+# TODO: add substitutions to sim!

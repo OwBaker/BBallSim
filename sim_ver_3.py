@@ -80,7 +80,7 @@ class Match:
     def showMatchups(self):
 
         for player in self.lineups["t1"] + self.lineups["t2"]:
-            print(player.data.get("Name"), player.matchup)
+            print(f"{player.data.get("Name")} defended by {player.matchup}")
 
     def simPossession(self):
 
@@ -104,12 +104,15 @@ class Match:
                 time_elapsed = 24
                 break
 
-            # choose player ()
+            # if goal is play, then shot will be assisted
+            # need to choose who gets the assist...
+
+            # choose player and matchup
             shooter = self.choosePlayer(goal, off_lineup)
             matchup = shooter.matchup
 
             # run attempt
-            shot = self.shootIt(shooter, matchup, goal, shotclock) # todo: tweak time spent calculations to shave off ~50 possessions
+            shot = self.shootIt(shooter, matchup, goal, shotclock)
 
             # if score, add to point totals and other stats
             time_elapsed = shot[1]
@@ -120,6 +123,13 @@ class Match:
 
             if "made" in shot[0]:
                 shooter.logShot(shot[0])
+
+                if goal["play"] == "play":
+                    if self.assistCheck():
+                        poss_assisters = set(off_lineup)
+                        poss_assisters.remove(shooter)
+                        assister = self.chooseAssister(list(poss_assisters))
+                        assister.assists += 1
 
                 match goal["shot"]:
                     
@@ -161,6 +171,26 @@ class Match:
         self.totalpossessions += 1
 
         return
+    
+    def assistCheck(self):
+
+        ast_odds = 0.35
+
+        outcome = flip((ast_odds, True), (1.00 - ast_odds, False))
+
+        return outcome
+    
+    def chooseAssister(self, lineup):
+
+        n = 3
+
+        assister_list = self.getBestAttribute("Pass", n, lineup)
+
+        assister = flip((0.33, assister_list[n - n]),
+                        (0.33, assister_list[n - (n - 1)]),
+                        (0.34, assister_list[n - (n - 2)]))
+        
+        return assister
     
     def getMatchup(self, player, opp_lineup, strength):
         '''
@@ -421,6 +451,17 @@ class Match:
                                 case 0:
                                    # index = i    
                                    pass
+                    case "pass":
+                        if onfloor[i].passodds > best_player.passodds:
+                            best_player = onfloor[i]
+                            index = i
+                        elif onfloor[i].passodds == best_player.passodds:
+                            coin = rand.randint(0, 1)
+                            match coin:
+                                case 1:
+                                    best_player = onfloor[i]
+                                case 0:
+                                   pass
                     case default:
                         raise ValueError(f"No attribute provided, recevied {default} instead")
                     
@@ -659,23 +700,22 @@ class Player:
         self.threeodds = data.get("ThreeTend")
         self.midodds = data.get("MidTend")
         self.layodds = data.get("LayTend")
-        self.passodds = data.get("PassTend")
+        self.passodds = data.get("Pass")
         self.threeshot = data.get("ThreeShot")
         self.midshot = data.get("MidShot")
         self.layshot = data.get("LayShot")
         self.stl = data.get("Stl")
         self.perdef = data.get("PerDef")
         self.paintdef = data.get("PaintDef")
-        self.speed = data.get("Speed")
         self.ballhandle = data.get("BallHandle") # need to add still
         
         
-        self.loc = "outside"
         self.matchup = None
         self.points = 0
         self.threes = 0
         self.mids = 0
         self.lays = 0
+        self.assists = 0
         self.shottot = 0
         self.shotsmade = 0
     
@@ -684,7 +724,7 @@ class Player:
         stat_dict = {
             "name": self.data.get("Name")[0] + ". " + self.data.get("Name").split(" ")[-1],
             "pts": self.points,
-            "ast": 0,
+            "ast": self.assists,
             "threes": self.threes,
             "fg%": self.fgper
         }
@@ -811,7 +851,7 @@ def rosterize(playersdict, team):
 def gen_players(amount):
     
     dict = {"PlayerID": [], "Name": [], "ThreeShot": [], "MidShot": [], "LayShot": [], "PerDef": [], "PaintDef": [], "Stl": [], "ShotTend": [], "ThreeTend": []
-            , "MidTend": [], "LayTend": [], "PassTend": []}
+            , "MidTend": [], "LayTend": [], "Pass": []}
     for i in range(amount):
         dict["PlayerID"].append(i)
         dict["Name"].append(names[rand.randint(0, len(names) - 1)])
@@ -826,7 +866,7 @@ def gen_players(amount):
         dict["ThreeTend"].append(rand.randint(20, 70))
         dict["MidTend"].append(rand.randint(20, 70))
         dict["LayTend"].append(rand.randint(20, 70))
-        dict["PassTend"].append(rand.randint(20, 70))
+        dict["Pass"].append(rand.randint(20, 70))
         
         
     
@@ -840,7 +880,7 @@ def initializeTeams(t1, t2):
 
     players = gen_players(10) # get players
 
-    attributes = ["PlayerID", "Name", "ThreeShot", "MidShot", "LayShot", "PerDef", "PaintDef", "Stl", "ShotTend", "ThreeTend", "MidTend", "LayTend", "PassTend"]
+    attributes = ["PlayerID", "Name", "ThreeShot", "MidShot", "LayShot", "PerDef", "PaintDef", "Stl", "ShotTend", "ThreeTend", "MidTend", "LayTend", "Pass"]
 
     # team 1 loop
     for i in range(5):
