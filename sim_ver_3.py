@@ -2,18 +2,6 @@
 The Third Version of Owen's Basketball Sim, meant to be faster to develop and simpler.
 '''
 
-'''
-Program Architecture:
-
-Match Class
-Team Class
-Player Class
-
-
-
-
-'''
-
 import random as rand
 import json
 
@@ -31,6 +19,7 @@ class Team:
         self.losses = 0
         self.avgpts = 0.0   
         self.gamescores = []
+        self.lineup = []
 
 
 # class for a game
@@ -39,11 +28,13 @@ class Match:
     def __init__(self, t1, t2):
         t1.roster = rosterize(t1.players, "t1")
         t2.roster = rosterize(t2.players, "t2")
+        t1.lineup = t1.roster[:5]
+        t2.lineup = t2.roster[:5]
 
         self.teams = {"t1": t1,
                        "t2": t2}
-        self.lineups = {"t1": t1.roster[:5],
-                       "t2": t2.roster[:5]}
+        self.lineups = {"t1": t1.lineup,
+                       "t2": t2.lineup}
         self.scores = {"t1": 0,
                        "t2": 0}
         
@@ -87,6 +78,8 @@ class Match:
         off_lineup = self.lineups[self.haspossession]
         def_lineup = self.lineups[self.defending]
 
+        self.staminaCheck(off_lineup)
+
         self.decideMatchups(off_lineup, def_lineup)
         
         if self.quartertime < 24:
@@ -104,9 +97,6 @@ class Match:
                 time_elapsed = 24
                 break
 
-            # if goal is play, then shot will be assisted
-            # need to choose who gets the assist...
-
             # choose player and matchup
             shooter = self.choosePlayer(goal, off_lineup)
             matchup = shooter.matchup
@@ -121,9 +111,12 @@ class Match:
             if shotclock < 0:
                 break
 
+            shooter.subtractStamina(time_elapsed)
+
             if "made" in shot[0]:
                 shooter.logShot(shot[0])
 
+                # run assist check
                 if goal["play"] == "play":
                     if self.assistCheck():
                         poss_assisters = set(off_lineup)
@@ -172,6 +165,36 @@ class Match:
 
         return
     
+    def staminaCheck(self, lineup):
+
+        tapped_out = []
+        for player in lineup:
+            if player.stamina < 0:
+                tapped_out.append(player)
+
+        if len(tapped_out) > 0:
+            subs = self.getSubs(len(tapped_out), self.teams[self.haspossession].roster, tapped_out, lineup)
+            new_lineup = [player for player in lineup if player not in tapped_out] + subs
+            self.lineups[self.haspossession] = new_lineup
+    
+    def getSubs(self, num, roster, tapped_out, current_lineup):
+        '''chooses who to sub in next (highest avg offensive stats for now)'''
+        available_options = {player for player in roster if player not in tapped_out + current_lineup}
+
+        subs = []
+        for i in range(num):
+            candidate = list(available_options)[0]
+            for player in available_options:
+                candsum = sum([candidate.threeshot, candidate.midshot, candidate.layshot])
+                playersum = sum([player.threeshot, player.midshot, player.layshot])
+                if playersum > candsum:
+                    candidate = player
+            available_options.remove(candidate)
+            subs.append(candidate)
+
+        return subs
+
+
     def assistCheck(self):
 
         ast_odds = 0.35
@@ -711,6 +734,7 @@ class Player:
         
         
         self.matchup = None
+        self.stamina = 100
         self.points = 0
         self.threes = 0
         self.mids = 0
@@ -742,7 +766,7 @@ class Player:
     
     def __hash__(self) -> int:
 
-        val = sum([self.ballhandle, self.layodds, self.shotodds, self.midshot, self.layshot, self.threeshot])
+        val = sum([self.ballhandle, self.layodds, self.shotodds, self.midshot, self.layshot, self.threeshot, self.data.get("PlayerID")])
         return val
     
     def __eq__(self, other: object) -> bool:
@@ -754,6 +778,11 @@ class Player:
             return True
         return False
 
+    def subtractStamina(self, shottime):
+
+        time_ratio = shottime / 24
+
+        self.stamina -= time_ratio * 10
 
     def logShot(self, outcome):
         '''
