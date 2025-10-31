@@ -13,18 +13,20 @@ def main_menu():
         screen.fill("white")
         mouse_pos = pygame.mouse.get_pos()
 
+        # create gui elements
+        franchise_mode = TextButton(screen.get_width() / 25, screen.get_height() / 2, "Franchise Mode", int(45 * screen.get_height() / 720),
+                                centered=False, font=global_font)
+        single_sim = TextButton(franchise_mode.x, franchise_mode.y * 1.2, "Single Sim", int(45 * screen.get_height() / 720),
+                                centered=False, font=global_font)
+        exit = TextButton(single_sim.x, single_sim.y + (single_sim.y - franchise_mode.y), "Exit", int(45 * screen.get_height() / 720), centered=False, font=global_font)
+
+        buttons = [franchise_mode, single_sim, exit]
+
         # put logo on screen
         logo = pygame.image.load("assets/Dream Leagues Large Logo.png")
-        logo = pygame.transform.scale_by(logo, 720 / screen_y)
-        logo_rect = logo.get_rect(x=screen.get_width() / 85, y=screen.get_height() / 6)
+        logo = pygame.transform.scale_by(logo, factor=0.23 * (screen_y / 720))
+        logo_rect = logo.get_rect(x=screen.get_width() / 85, bottom=(franchise_mode.rect.bottom - 0.5 *(single_sim.y - franchise_mode.y)))
         screen.blit(logo, logo_rect)
-
-        # create gui elements
-        single_sim = TextButton(screen.get_width() / 25, screen.get_height() / 2, "Single Sim", int(45 * screen.get_height() / 720),
-                                centered=False, font=global_font)
-        exit = TextButton(single_sim.x, single_sim.y * 1.2, "Exit", int(45 * screen.get_height() / 720), centered=False, font=global_font)
-
-        buttons = [single_sim, exit]
 
         # render gui elements
         for button in buttons:
@@ -39,6 +41,23 @@ def main_menu():
                 running = False
 
         pygame.display.flip()
+
+def franchise_select_team():
+
+    '''
+    main menu -> franchise menu -> select team -> customize league settings -> franchise home
+        franchise home (view rosters) -> roster menu (all teams)
+        franchise home (make trades) -> trade menu
+            trade menu (trade finder) -> roster menu variation -> trade viewer
+            trade menu (trade builder) -> trade viewer
+                trade viewer (add player (you)) -> roster menu (you) -> trade viewer
+                trade viewer (add player (other)) -> roster menu (other) -> trade viewer
+        franchise home (sim forward) -> franchise home (games simmed, stats updated)
+        franchise home (sim today) -> single sim (of given day)
+        franchise home (exit) -> main menu
+    '''
+
+    pass
 
 def single_sim_menu():
     pygame.display.set_caption("Single Sim") # set menu caption
@@ -431,4 +450,5 @@ main_menu()
 
 # TODO: function documentation
 # TODO: clean up logic and make code more readable
-# TODO: either a) improve sub logic, or b) start work on franchise mode
+# TODO: prioritize franchise mode
+# TODO: maybe write a script to scrape nba data and create players from it

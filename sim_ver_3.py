@@ -983,22 +983,3 @@ def dict_to_team(dct):
     teamobj.losses = dct["losses"]
     
     return teamobj
-
-# controls everything
-# def main():
-
-#     teamdict = load_teams("testteams.json")
-#     mice = dict_to_team(teamdict["Knicks"])
-#     snakes = dict_to_team(teamdict["Cavs"])
-
-#     while True:
-#         sim = input("press enter to sim a match")
-#         if sim == "":
-#             game = Match(mice, snakes)
-#             game.play()
-#         else:
-#             break
-
-#     #save_teams([mice, snakes])
-
-# main()
