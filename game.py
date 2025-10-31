@@ -431,4 +431,4 @@ main_menu()
 
 # TODO: function documentation
 # TODO: clean up logic and make code more readable
-# TODO: add substitutions to sim!
+# TODO: either a) improve sub logic, or b) start work on franchise mode

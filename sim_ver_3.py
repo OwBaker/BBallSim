@@ -74,7 +74,7 @@ class Match:
             print(f"{player.data.get("Name")} defended by {player.matchup}")
 
     def simPossession(self):
-
+        # trying to fix score bug rn
         off_lineup = self.lineups[self.haspossession]
         def_lineup = self.lineups[self.defending]
 
@@ -112,6 +112,7 @@ class Match:
                 break
 
             shooter.subtractStamina(time_elapsed)
+            matchup.subtractStamina(time_elapsed)
 
             if "made" in shot[0]:
                 shooter.logShot(shot[0])
@@ -135,7 +136,7 @@ class Match:
                         break
 
                     case "lay":
-                        self.scores[self.haspossession] += 3
+                        self.scores[self.haspossession] += 2
                         break
 
             # if miss, decide who (which team/player) gets rebound
@@ -173,24 +174,32 @@ class Match:
                 tapped_out.append(player)
 
         if len(tapped_out) > 0:
-            subs = self.getSubs(len(tapped_out), self.teams[self.haspossession].roster, tapped_out, lineup)
+            subs = self.getSubs(self.teams[self.haspossession].roster, tapped_out, lineup)
             new_lineup = [player for player in lineup if player not in tapped_out] + subs
             self.lineups[self.haspossession] = new_lineup
     
-    def getSubs(self, num, roster, tapped_out, current_lineup):
+    def getSubs(self, roster, tapped_out, current_lineup):
         '''chooses who to sub in next (highest avg offensive stats for now)'''
         available_options = {player for player in roster if player not in tapped_out + current_lineup}
 
         subs = []
-        for i in range(num):
+        for i in range(len(tapped_out)):
+            skill_needed = self.getOffTalents(tapped_out[i])
+
             candidate = list(available_options)[0]
             for player in available_options:
-                candsum = sum([candidate.threeshot, candidate.midshot, candidate.layshot])
-                playersum = sum([player.threeshot, player.midshot, player.layshot])
-                if playersum > candsum:
+                cand_stat = candidate.data.get(skill_needed)
+                player_stat = player.data.get(skill_needed)
+                # candsum = sum([candidate.threeshot, candidate.midshot, candidate.layshot])
+                # playersum = sum([player.threeshot, player.midshot, player.layshot])
+                if player_stat > cand_stat:
                     candidate = player
             available_options.remove(candidate)
             subs.append(candidate)
+
+        for player in subs:
+            if player.stamina <= 0:
+                player.stamina = 50
 
         return subs
 
@@ -701,9 +710,9 @@ class Match:
 
     def showStats(self):
 
-            for player in self.lineups["t1"]:
+            for player in self.teams["t1"].roster:
                 print(f"{player.data.get('Name')}: {player.points} points, {player.threes} threes")
-            for player in self.lineups["t2"]:
+            for player in self.teams["t2"].roster:
                 print(f"{player.data.get('Name')}: {player.points} points, {player.threes} threes")
         
 
